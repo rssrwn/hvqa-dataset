@@ -48,7 +48,7 @@ class Video:
 
     def _gen_prop_question(self):
         """
-        Generate question a question asking about a property of an object for a single frame
+        Generate question asking about a property of an object for a single frame
         Q: What <property> was the <object> in frame <frame_idx>?
         A: <property_val>
 
@@ -69,9 +69,7 @@ class Video:
         # If class uniquely identifies obj leave additional identifier blank
         # Otherwise use value of additional identifier
         obj, unique_prop = obj
-        unique_prop_val = ""
-        if unique_prop != "class":
-            unique_prop_val = str(obj.get_prop_val(unique_prop)) + " "
+        obj_str = self._gen_unique_obj_str(obj, unique_prop)
 
         # Get the property value (the answer)
         props = QUESTION_OBJ_PROPS[:]
@@ -82,15 +80,38 @@ class Video:
         prop = props[idx]
         prop_val = obj.get_prop_val(prop)
 
-        question = f"What {prop} was the {unique_prop_val}{obj.obj_type} in frame {str(frame_idx)}"
+        question = f"What {prop} was the {obj_str} in frame {str(frame_idx)}"
         answer = str(prop_val)
 
         return question, answer
+    
+    # def _gen_relations_question(self):
+    #     """
+    #     Generate question asking about a relation between two objects in a single frame
+    #     Q: Was the <object> <relation> to the <object> in frame <frame idx>?
+    #     A: yes/no
+    #
+    #     :return: (question: str, answer: str)
+    #     """
+    #
+    #     frame_idx = random.randint(0, NUM_FRAMES - 1)
+    #     frame = self.frames[frame_idx]
+    #
+    #     # Find objects which are unique in the frame
+    #     objs = frame.get_objects()
+    #     unique_objs = []
+    #     for obj in objs:
+    #         prop = self._unique_prop(obj, objs)
+    #         if prop is not None:
+    #             obj_str = self._gen_unique_obj_str(obj, prop)
+    #             unique_objs.append((obj, obj_str))
+    #
+    #
 
     def _find_unique_obj(self, frame):
         """
         Find an object which is uniquely identified in the frame
-        Return FrameObject and a property which uniquely identifies the  object
+        Return FrameObject and a property which uniquely identifies the object
         Return None if not possible
 
         :param frame: FrameObject
@@ -164,6 +185,24 @@ class Video:
             return unique_props[0]
 
         return None
+
+    @staticmethod
+    def _gen_unique_obj_str(obj, prop):
+        unique_prop_val = ""
+        if prop != "class":
+            unique_prop_val = str(obj.get_prop_val(prop))
+            if prop == "rotation":
+                if unique_prop_val == 0:
+                    unique_prop_val = "upward-facing"
+                elif unique_prop_val == 1:
+                    unique_prop_val = "right-facing"
+                elif unique_prop_val == 2:
+                    unique_prop_val = "downward-facing"
+                elif unique_prop_val == 3:
+                    unique_prop_val = "left-facing"
+
+        obj_str = f"{unique_prop_val} {obj.obj_type}"
+        return obj_str
 
     def to_dict(self):
         return {
