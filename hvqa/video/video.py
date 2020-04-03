@@ -9,12 +9,12 @@ class Video:
     def __init__(self):
         self.frames = []
         self.events = []
-        # self.questions = []
-        # self.answers = []
-        # self.q_idxs = []
-        # self._question_funcs = [
-        #     self._gen_prop_question
-        # ]
+        self.questions = []
+        self.answers = []
+        self.q_idxs = []
+        self._question_funcs = [
+            self._gen_prop_question
+        ]
 
     def random_video(self):
         initial = Frame()
@@ -27,59 +27,65 @@ class Video:
             self.frames.append(curr)
             self.events.append(events)
 
-        # questions, answers, idxs = self._gen_qa_pairs()
-        # self.questions = questions
-        # self.answers = answers
-        # self.q_idxs = idxs
+        questions, answers, idxs = self._gen_qa_pairs()
+        self.questions = questions
+        self.answers = answers
+        self.q_idxs = idxs
 
-    # def _gen_qa_pairs(self):
-    #     questions = []
-    #     answers = []
-    #     idxs = []
-    #     for q_idx in range(QS_PER_VIDEO):
-    #         func_idx = random.randint(0, len(self._question_funcs) - 1)
-    #         q_func = self._question_funcs[func_idx]
-    #         question, answer = q_func()
-    #         questions.append(question)
-    #         answers.append(answer)
-    #         idxs.append(q_idx)
-    #
-    #     return questions, answers, idxs
+    def _gen_qa_pairs(self):
+        questions = []
+        answers = []
+        idxs = []
+        for q_idx in range(QS_PER_VIDEO):
+            func_idx = random.randint(0, len(self._question_funcs) - 1)
+            q_func = self._question_funcs[func_idx]
+            question, answer = q_func()
+            questions.append(question)
+            answers.append(answer)
+            idxs.append(q_idx)
 
-    # Q: What <property> was the <object> in frame <frame_idx>?
-    # A: <property_val>
-    # def _gen_prop_question(self):
-    #     frame_idx = random.randint(0, NUM_FRAMES - 1)
-    #     frame = self.frames[frame_idx]
-    #
-    #     # Find obj for question
-    #     # If no unique obj exists, use first frame which is guaranteed to contain octopus
-    #     obj = self._find_unique_obj(frame)
-    #     if obj is None:
-    #         obj = self._find_unique_obj(self.frames[0])
-    #
-    #     assert obj is not None, "Cannot find unique object in the first frame of the video"
-    #
-    #     # If class uniquely identifies obj leave additional identifier blank
-    #     # Otherwise use value of additional identifier
-    #     obj, unique_prop = obj
-    #     unique_prop_val = ""
-    #     if unique_prop != "class":
-    #         unique_prop_val = str(obj.get_prop_val(unique_prop)) + " "
-    #
-    #     # Get the property value (the answer)
-    #     props = QUESTION_OBJ_PROPS[:]
-    #     if unique_prop != "class":
-    #         props.remove(unique_prop)
-    #
-    #     idx = random.randint(0, len(props) - 1)
-    #     prop = props[idx]
-    #     prop_val = obj.get_prop_val(prop)
-    #
-    #     question = f"What {prop} was the {unique_prop_val}{obj.obj_type} in frame {str(frame_idx)}"
-    #     answer = str(prop_val)
-    #
-    #     return question, answer
+        return questions, answers, idxs
+
+    def _gen_prop_question(self):
+        """
+        Generate question a question asking about a property of an object for a single frame
+        Q: What <property> was the <object> in frame <frame_idx>?
+        A: <property_val>
+
+        :return: (question: str, answer: str)
+        """
+
+        frame_idx = random.randint(0, NUM_FRAMES - 1)
+        frame = self.frames[frame_idx]
+
+        # Find obj for question
+        # If no unique obj exists, use first frame which is guaranteed to contain octopus
+        obj = self._find_unique_obj(frame)
+        if obj is None:
+            obj = self._find_unique_obj(self.frames[0])
+
+        assert obj is not None, "Cannot find unique object in the first frame of the video"
+
+        # If class uniquely identifies obj leave additional identifier blank
+        # Otherwise use value of additional identifier
+        obj, unique_prop = obj
+        unique_prop_val = ""
+        if unique_prop != "class":
+            unique_prop_val = str(obj.get_prop_val(unique_prop)) + " "
+
+        # Get the property value (the answer)
+        props = QUESTION_OBJ_PROPS[:]
+        if unique_prop != "class":
+            props.remove(unique_prop)
+
+        idx = random.randint(0, len(props) - 1)
+        prop = props[idx]
+        prop_val = obj.get_prop_val(prop)
+
+        question = f"What {prop} was the {unique_prop_val}{obj.obj_type} in frame {str(frame_idx)}"
+        answer = str(prop_val)
+
+        return question, answer
 
     def _find_unique_obj(self, frame):
         """
@@ -163,7 +169,7 @@ class Video:
         return {
             "frames": [frame.to_dict() for frame in self.frames],
             "events": self.events,
-            # "questions": self.questions,
-            # "answers": self.answers,
-            # "question_types": self.q_idxs
+            "questions": self.questions,
+            "answers": self.answers,
+            "question_types": self.q_idxs
         }
