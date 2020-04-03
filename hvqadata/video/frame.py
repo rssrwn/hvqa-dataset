@@ -1,9 +1,9 @@
 import math
 import random
 
-from hvqa.video.frame_object import FrameObject
-from hvqa.util.definitions import *
-from hvqa.util.exceptions import *
+from hvqadata.video.frame_object import FrameObject
+from hvqadata.util.definitions import *
+from hvqadata.util.exceptions import *
 
 
 class Frame:

@@ -4,8 +4,8 @@ import shutil
 from PIL import Image
 from pathlib import Path
 
-from hvqa.video.video import Video
-from hvqa.draw import Drawer
+from hvqadata.video.video import Video
+from hvqadata.draw import Drawer
 
 
 def write_json(out_dir, num_videos):

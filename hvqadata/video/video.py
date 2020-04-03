@@ -1,7 +1,7 @@
 import random
 
-from hvqa.video.frame import Frame
-from hvqa.util.definitions import *
+from hvqadata.video.frame import Frame
+from hvqadata.util.definitions import *
 
 
 class Video:

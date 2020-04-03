@@ -1,7 +1,7 @@
 import argparse
 import numpy as np
 
-from hvqa.util.func import get_video_dicts
+from hvqadata.util.func import get_video_dicts
 
 
 def extract_event(event):
