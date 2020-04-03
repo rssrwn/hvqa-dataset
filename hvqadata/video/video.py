@@ -2,6 +2,7 @@ import random
 
 from hvqadata.video.frame import Frame
 from hvqadata.util.definitions import *
+from hvqadata.util.func import close_to
 
 
 class Video:
@@ -13,7 +14,11 @@ class Video:
         self.answers = []
         self.q_idxs = []
         self._question_funcs = [
-            self._gen_prop_question
+            # self._gen_prop_question,
+            self._gen_relations_question
+        ]
+        self._relations = [
+            (close_to, "close to")
         ]
 
     def random_video(self):
@@ -80,33 +85,61 @@ class Video:
         prop = props[idx]
         prop_val = obj.get_prop_val(prop)
 
-        question = f"What {prop} was the {obj_str} in frame {str(frame_idx)}"
+        question = f"What {prop} was the {obj_str} in frame {str(frame_idx)}?"
         answer = str(prop_val)
 
         return question, answer
-    
-    # def _gen_relations_question(self):
-    #     """
-    #     Generate question asking about a relation between two objects in a single frame
-    #     Q: Was the <object> <relation> to the <object> in frame <frame idx>?
-    #     A: yes/no
-    #
-    #     :return: (question: str, answer: str)
-    #     """
-    #
-    #     frame_idx = random.randint(0, NUM_FRAMES - 1)
-    #     frame = self.frames[frame_idx]
-    #
-    #     # Find objects which are unique in the frame
-    #     objs = frame.get_objects()
-    #     unique_objs = []
-    #     for obj in objs:
-    #         prop = self._unique_prop(obj, objs)
-    #         if prop is not None:
-    #             obj_str = self._gen_unique_obj_str(obj, prop)
-    #             unique_objs.append((obj, obj_str))
-    #
-    #
+
+    def _gen_relations_question(self):
+        """
+        Generate question asking about a relation between two objects in a single frame
+        Q: Was the <object> <relation> to the <object> in frame <frame idx>?
+        A: yes/no
+
+        :return: (question: str, answer: str)
+        """
+
+        frame_idx = random.randint(0, NUM_FRAMES - 1)
+        frame = self.frames[frame_idx]
+
+        # Find objects which are unique in the frame
+        objs = frame.get_objects()
+        unique_objs = []
+        for obj in objs:
+            prop = self._unique_prop(obj, objs)
+            if prop is not None:
+                obj_str = self._gen_unique_obj_str(obj, prop)
+                unique_objs.append((obj, obj_str))
+
+        # Find (un)related unique objects
+        related_objs = {rel_str: [] for _, rel_str in self._relations}
+        unrelated_objs = []
+        for obj1, obj1_str in unique_objs:
+            for obj2, obj2_str in unique_objs:
+                for func, rel_str in self._relations:
+                    is_related = func(obj1, obj2)
+                    rel = (obj1_str, obj2_str, rel_str)
+                    if is_related:
+                        related_objs[rel_str].append(rel)
+                    else:
+                        unrelated_objs.append(rel)
+
+        # Randomly select a (un)relation to use
+        rel_q = random.random() > 0.5
+        rels = unrelated_objs
+        if rel_q:
+            idx = random.randint(0, len(related_objs.keys()) - 1)
+            _, rel_str = self._relations[idx]
+            rels = related_objs[rel_str]
+
+        idx = random.randint(0, len(rels) - 1)
+        rel = rels[idx]
+        obj1_str, obj2_str, rel_str = rel
+
+        question = f"Was the {obj1_str} {rel_str} the {obj2_str} in frame {frame_idx}?"
+        answer = "yes" if rel_q else "no"
+
+        return question, answer
 
     def _find_unique_obj(self, frame):
         """
