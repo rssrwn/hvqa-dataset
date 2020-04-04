@@ -14,7 +14,7 @@ class Video:
         self.answers = []
         self.q_idxs = []
         self._question_funcs = [
-            # self._gen_prop_question,
+            self._gen_prop_question,
             self._gen_relations_question
         ]
         self._relations = [
@@ -42,9 +42,19 @@ class Video:
         answers = []
         idxs = []
         for q_idx in range(QS_PER_VIDEO):
-            func_idx = random.randint(0, len(self._question_funcs) - 1)
-            q_func = self._question_funcs[func_idx]
-            question, answer = q_func()
+            qa_pair = None
+            func_idx = None
+            func_idxs = list(range(len(self._question_funcs)))
+            random.shuffle(func_idxs)
+            for func_idx in func_idxs:
+                q_func = self._question_funcs[func_idx]
+                qa_pair = q_func()
+                if qa_pair is not None:
+                    break
+
+            assert qa_pair is not None, "Could not find a question for video"
+
+            question, answer = qa_pair
             questions.append(question)
             answers.append(answer)
             idxs.append(func_idx)
@@ -69,7 +79,9 @@ class Video:
         if obj is None:
             obj = self._find_unique_obj(self.frames[0])
 
-        assert obj is not None, "Cannot find unique object in the first frame of the video"
+        # If this question fails, try another question
+        if obj is None:
+            return None
 
         # If class uniquely identifies obj leave additional identifier blank
         # Otherwise use value of additional identifier
@@ -100,11 +112,12 @@ class Video:
         """
 
         # Randomly select a (un)relation to use
-        rel_q = random.random() > 0.5
+        rel_q_prob = 0.75
+        rel_q = random.random() < rel_q_prob
         idx = random.randint(0, len(self._relations) - 1)
         rel_func, rel_str = self._relations[idx]
 
-        frame_idxs = list(range(0, NUM_FRAMES))
+        frame_idxs = list(range(NUM_FRAMES))
         random.shuffle(frame_idxs)
 
         frame_idx = None
@@ -114,10 +127,7 @@ class Video:
         for frame_idx in frame_idxs:
             frame = self.frames[frame_idx]
             unique_objs = self._find_unique_objs(frame)
-            print([obj_str for _, obj_str in unique_objs])
             related_objs, unrelated_objs = self._find_related_objs(unique_objs, rel_func)
-            print("num relations", len(related_objs))
-            print("num unrelations", len(unrelated_objs))
             if rel_q:
                 if len(related_objs) > 0:
                     rels = related_objs
@@ -127,14 +137,17 @@ class Video:
                     rels = unrelated_objs
                     break
 
-        # If cannot find required relation use unrelated on first frame (with closeness relation)
+        # If cannot find required relation use unrelated on a random frame (with closeness relation)
         if rels is None:
-            print(f"rels is empty")
             rel_q = False
-            frame_idx = 0
+            frame_idx = random.randint(0, NUM_FRAMES - 1)
             frame = self.frames[frame_idx]
             unique_objs = self._find_unique_objs(frame)
             _, rels = self._find_related_objs(unique_objs, close_to)
+
+        # If this question fails, try another question
+        if len(rels) == 0:
+            return None
 
         rel_idx = random.randint(0, len(rels) - 1)
         rel = rels[rel_idx]
@@ -171,7 +184,7 @@ class Video:
         Returns a list of related and unrelated objs
         Each element is (obj1_str, obj2_str)
 
-        :param objs: List of FrameObjects to search through
+        :param objs: List of (FrameObjects, obj_str) to search through
         :param rel_func: Relation function
         :return: (related, unrelated)
         """
@@ -182,10 +195,11 @@ class Video:
             for obj2, obj2_str in objs:
                 is_related = rel_func(obj1, obj2)
                 rel = (obj1_str, obj2_str)
-                if is_related and obj1_str != obj2_str:
-                    related_objs.append(rel)
-                else:
-                    unrelated_objs.append(rel)
+                if obj1_str != obj2_str:
+                    if is_related:
+                        related_objs.append(rel)
+                    else:
+                        unrelated_objs.append(rel)
 
         return related_objs, unrelated_objs
 

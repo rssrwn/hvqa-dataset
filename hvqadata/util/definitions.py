@@ -37,8 +37,8 @@ MAX_FISH = 8
 MIN_BAG = 2
 MAX_BAG = 3
 
-MIN_ROCK = 5
-MAX_ROCK = 6
+MIN_ROCK = 3
+MAX_ROCK = 4
 
 
 # *** Colour definitions ***
