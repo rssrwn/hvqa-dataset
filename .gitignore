@@ -2,6 +2,7 @@
 hvqadata/__pycache__/
 hvqadata/util/__pycache__/
 hvqadata/video/__pycache__/
+.DS_Store
 
 data/
 example-data/

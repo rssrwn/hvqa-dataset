@@ -47,7 +47,7 @@ class Video:
             question, answer = q_func()
             questions.append(question)
             answers.append(answer)
-            idxs.append(q_idx)
+            idxs.append(func_idx)
 
         return questions, answers, idxs
 
@@ -99,10 +99,61 @@ class Video:
         :return: (question: str, answer: str)
         """
 
-        frame_idx = random.randint(0, NUM_FRAMES - 1)
-        frame = self.frames[frame_idx]
+        # Randomly select a (un)relation to use
+        rel_q = random.random() > 0.5
+        idx = random.randint(0, len(self._relations) - 1)
+        rel_func, rel_str = self._relations[idx]
 
-        # Find objects which are unique in the frame
+        frame_idxs = list(range(0, NUM_FRAMES))
+        random.shuffle(frame_idxs)
+
+        frame_idx = None
+        rels = None
+
+        # Attempt to sample a question from each frame randomly
+        for frame_idx in frame_idxs:
+            frame = self.frames[frame_idx]
+            unique_objs = self._find_unique_objs(frame)
+            print([obj_str for _, obj_str in unique_objs])
+            related_objs, unrelated_objs = self._find_related_objs(unique_objs, rel_func)
+            print("num relations", len(related_objs))
+            print("num unrelations", len(unrelated_objs))
+            if rel_q:
+                if len(related_objs) > 0:
+                    rels = related_objs
+                    break
+            else:
+                if len(unrelated_objs) > 0:
+                    rels = unrelated_objs
+                    break
+
+        # If cannot find required relation use unrelated on first frame (with closeness relation)
+        if rels is None:
+            print(f"rels is empty")
+            rel_q = False
+            frame_idx = 0
+            frame = self.frames[frame_idx]
+            unique_objs = self._find_unique_objs(frame)
+            _, rels = self._find_related_objs(unique_objs, close_to)
+
+        rel_idx = random.randint(0, len(rels) - 1)
+        rel = rels[rel_idx]
+        obj1_str, obj2_str = rel
+
+        question = f"Was the {obj1_str} {rel_str} the {obj2_str} in frame {frame_idx}?"
+        answer = "yes" if rel_q else "no"
+
+        return question, answer
+
+    def _find_unique_objs(self, frame):
+        """
+        Find all objects which can be uniquely identified in the frame
+        Returns FrameObjects along with a string which uniquely identifies the object
+
+        :param frame: Frame
+        :return: List of pairs: (obj: FrameObject, obj_str: str)
+        """
+
         objs = frame.get_objects()
         unique_objs = []
         for obj in objs:
@@ -111,35 +162,32 @@ class Video:
                 obj_str = self._gen_unique_obj_str(obj, prop)
                 unique_objs.append((obj, obj_str))
 
-        # Find (un)related unique objects
-        related_objs = {rel_str: [] for _, rel_str in self._relations}
+        return unique_objs
+
+    @staticmethod
+    def _find_related_objs(objs, rel_func):
+        """
+        Find (un)related objects in frame
+        Returns a list of related and unrelated objs
+        Each element is (obj1_str, obj2_str)
+
+        :param objs: List of FrameObjects to search through
+        :param rel_func: Relation function
+        :return: (related, unrelated)
+        """
+
+        related_objs = []
         unrelated_objs = []
-        for obj1, obj1_str in unique_objs:
-            for obj2, obj2_str in unique_objs:
-                for func, rel_str in self._relations:
-                    is_related = func(obj1, obj2)
-                    rel = (obj1_str, obj2_str, rel_str)
-                    if is_related:
-                        related_objs[rel_str].append(rel)
-                    else:
-                        unrelated_objs.append(rel)
+        for obj1, obj1_str in objs:
+            for obj2, obj2_str in objs:
+                is_related = rel_func(obj1, obj2)
+                rel = (obj1_str, obj2_str)
+                if is_related and obj1_str != obj2_str:
+                    related_objs.append(rel)
+                else:
+                    unrelated_objs.append(rel)
 
-        # Randomly select a (un)relation to use
-        rel_q = random.random() > 0.5
-        rels = unrelated_objs
-        if rel_q:
-            idx = random.randint(0, len(related_objs.keys()) - 1)
-            _, rel_str = self._relations[idx]
-            rels = related_objs[rel_str]
-
-        idx = random.randint(0, len(rels) - 1)
-        rel = rels[idx]
-        obj1_str, obj2_str, rel_str = rel
-
-        question = f"Was the {obj1_str} {rel_str} the {obj2_str} in frame {frame_idx}?"
-        answer = "yes" if rel_q else "no"
-
-        return question, answer
+        return related_objs, unrelated_objs
 
     def _find_unique_obj(self, frame):
         """
@@ -190,13 +238,12 @@ class Video:
         unique_rotation = True
         unique_class = True
         for obj_ in objs:
-            if obj.position != obj_.position:
+            if obj.obj_type == obj_.obj_type and obj.position != obj_.position:
+                unique_class = False
                 if obj.colour == obj_.colour:
                     unique_colour = False
                 if obj.rotation == obj_.rotation:
                     unique_rotation = False
-                if obj.obj_type == obj_.obj_type:
-                    unique_class = False
 
             if not (unique_colour or unique_rotation or unique_class):
                 break
@@ -223,7 +270,7 @@ class Video:
     def _gen_unique_obj_str(obj, prop):
         unique_prop_val = ""
         if prop != "class":
-            unique_prop_val = str(obj.get_prop_val(prop))
+            unique_prop_val = obj.get_prop_val(prop)
             if prop == "rotation":
                 if unique_prop_val == 0:
                     unique_prop_val = "upward-facing"
@@ -234,7 +281,9 @@ class Video:
                 elif unique_prop_val == 3:
                     unique_prop_val = "left-facing"
 
-        obj_str = f"{unique_prop_val} {obj.obj_type}"
+            unique_prop_val = str(unique_prop_val) + " "
+
+        obj_str = f"{unique_prop_val}{obj.obj_type}"
         return obj_str
 
     def to_dict(self):
