@@ -3,6 +3,7 @@ import unittest
 from hvqadata.video.video import Video
 from hvqadata.video.frame_object import FrameObject
 from hvqadata.video.frame import Frame
+from hvqadata.util.func import close_to
 
 
 frames = []
@@ -17,7 +18,7 @@ obj1.rotation = 3
 obj2 = FrameObject(Frame())
 obj2.obj_type = "bag"
 obj2.colour = "white"
-obj2.position = (50, 100, 60, 110)
+obj2.position = (15, 105, 25, 115)
 obj2.rotation = 3
 
 obj3 = FrameObject(Frame())
@@ -102,3 +103,13 @@ class VideoTest(unittest.TestCase):
         prop = self.video._unique_prop(obj2, [obj2, obj8])
         expected = None
         self.assertEqual(expected, prop)
+
+    def test_find_related_objs_close_to(self):
+        objs = [(obj1, "octopus"), (obj2, "bag"), (obj3, "rock")]
+        related_objs, unrelated_objs = self.video._find_related_objs(objs, close_to)
+
+        expected_rel = {("octopus", "bag"), ("bag", "octopus")}
+        expected_unrel = {("octopus", "rock"), ("rock", "bag"), ("bag", "rock"), ("rock", "octopus")}
+
+        self.assertEqual(expected_rel, set(related_objs))
+        self.assertEqual(expected_unrel, set(unrelated_objs))
