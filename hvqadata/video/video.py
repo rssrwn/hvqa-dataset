@@ -14,8 +14,9 @@ class Video:
         self.answers = []
         self.q_idxs = []
         self._question_funcs = [
-            self._gen_prop_question,
-            self._gen_relations_question
+            # self._gen_prop_question,
+            # self._gen_relations_question,
+            self._gen_events_question
         ]
         self._relations = [
             (close_to, "close to")
@@ -155,6 +156,41 @@ class Video:
 
         question = f"Was the {obj1_str} {rel_str} the {obj2_str} in frame {frame_idx}?"
         answer = "yes" if rel_q else "no"
+
+        return question, answer
+
+    def _gen_events_question(self):
+        """
+        Generate a question which asks about which action occurred
+        Q: Which action occurred immediately after frame <frame_idx>?
+        A: move/rotate-left/rotate-right
+
+        :return: (question: str, answer: str)
+        """
+
+        actions = {}
+        for idx, events in enumerate(self.events):
+            events = [event for event in events if event in ACTIONS]
+
+            assert len(events) <= 1, f"Multiple actions in a single frame: {events}"
+
+            if len(events) == 1:
+                action = events[0]
+                idxs = actions.get(action)
+                if idxs is None:
+                    actions[action] = [idx]
+                else:
+                    idxs.append(idx)
+
+        action_set = list(actions.keys())
+        idx = random.randint(0, len(action_set) - 1)
+        action = action_set[idx]
+        frame_idxs = actions[action]
+        idx = random.randint(0, len(frame_idxs) - 1)
+        frame_idx = frame_idxs[idx]
+
+        question = f"Which action occurred immediately after frame {frame_idx}?"
+        answer = action
 
         return question, answer
 
