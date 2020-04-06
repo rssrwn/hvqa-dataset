@@ -246,6 +246,38 @@ class Video:
 
         return question, answer
 
+    def _gen_repetition_count_question(self):
+        """
+        Generate a question asking about the number of times something (action or indirect effect) happened
+        Q: How many times does the <object> <event>?
+        A: <Non-negative Integer>
+        Note: The object will always be the octopus
+
+        :return: (question: str, answer: str)
+        """
+
+        event_counts = self._count_events()
+        events = list(event_counts.keys())
+        idx = random.randint(0, len(events) - 1)
+        event = events[idx]
+        count = event_counts[event]
+
+        question = f"How many times does the octopus {event}?"
+        answer = str(count)
+
+        return question, answer
+
+    def _count_events(self):
+        counts = {event: 0 for event in EVENTS}
+        for events in self.events:
+            for event in events:
+                if event[:CHANGE_COLOUR_LENGTH] == "change colour":
+                    event = "change colour"
+
+                counts[event] += 1
+
+        return counts
+
     def _find_unique_objs(self, frame):
         """
         Find all objects which can be uniquely identified in the frame

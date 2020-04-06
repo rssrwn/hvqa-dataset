@@ -127,17 +127,17 @@ class Frame:
             if self.close_to_octopus(obj):
                 if obj.obj_type == "fish":
                     self.static_objects.remove(obj)
-                    events.append("eat fish")
+                    events.append(EAT_FISH_EVENT)
 
                 elif obj.obj_type == "bag":
                     self.static_objects.remove(obj)
                     remove_octopus = True
-                    events.append("eat bag")
+                    events.append(EAT_BAG_EVENT)
 
                 # Need nested check so we can throw UnknownObjectType
                 elif obj.obj_type == "rock":
                     if idx == closest_rock_idx:
-                        events.append(f"change colour from {self.octopus.colour} to {obj.colour}")
+                        events.append(COLOUR_CHANGE_EVENT.format(from_colour=self.octopus.colour, to_colour=obj.colour))
                         self.octopus.colour = obj.colour
 
                 else:

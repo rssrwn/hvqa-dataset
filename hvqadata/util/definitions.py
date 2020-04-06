@@ -23,8 +23,13 @@ MOVE_PIXELS = 15
 
 NO_EVENT = "nothing"
 MOVE_EVENT = "move"
-ROTATE_LEFT_EVENT = "rotate-left"
-ROTATE_RIGHT_EVENT = "rotate-right"
+ROTATE_LEFT_EVENT = "rotate left"
+ROTATE_RIGHT_EVENT = "rotate right"
+
+EAT_FISH_EVENT = "eat a fish"
+EAT_BAG_EVENT = "eat a bag"
+COLOUR_CHANGE_EVENT = "change colour from {from_colour} to {to_colour}"
+CHANGE_COLOUR_LENGTH = 13
 
 
 # *** QA Pairs ***
@@ -34,6 +39,7 @@ QS_PER_VIDEO = 10
 QUESTION_OBJ_PROPS = ["colour", "rotation"]
 
 ACTIONS = [MOVE_EVENT, ROTATE_LEFT_EVENT, ROTATE_RIGHT_EVENT]
+EVENTS = [MOVE_EVENT, ROTATE_LEFT_EVENT, ROTATE_RIGHT_EVENT, EAT_FISH_EVENT, EAT_BAG_EVENT, "change colour"]
 
 
 # *** Number of objects ***
