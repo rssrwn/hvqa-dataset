@@ -14,12 +14,12 @@ class Video:
         self.answers = []
         self.q_idxs = []
         self._question_funcs = [
-            self._gen_prop_question,
-            self._gen_relations_question,
+            # self._gen_prop_question,
+            # self._gen_relations_question,
             self._gen_events_question,
-            self._gen_prop_changed_question,
-            self._gen_repetition_count_question,
-            self._gen_repeating_action_question,
+            # self._gen_prop_changed_question,
+            # self._gen_repetition_count_question,
+            # self._gen_repeating_action_question,
             self._gen_state_transition_question
         ]
         self._relations = [
@@ -338,6 +338,7 @@ class Video:
         # Remove events which we can't make a question out of
         for event, idxs in event_idxs.items():
             idxs = [idx for idx in idxs if idx < NUM_FRAMES - 2]
+            idxs = [idx for idx in idxs if NO_EVENT not in set(self.events[idx + 1])]
             event_idxs[event] = idxs
 
         events = list(event_idxs.keys())
