@@ -19,6 +19,7 @@ class Video:
             self._gen_events_question,
             self._gen_prop_changed_question,
             self._gen_repetition_count_question,
+            self._gen_repeating_action_question,
             self._gen_state_transition_question
         ]
         self._relations = [
@@ -291,7 +292,7 @@ class Video:
 
         # Track the number of times each count occurs
         counts = {}
-        for _, count in event_counts:
+        for _, count in event_counts.items():
             increment_in_map_(counts, count)
 
         question_count = None
