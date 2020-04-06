@@ -95,10 +95,10 @@ class FrameObject:
         rand = random.random()
         if rand < 0.5:
             self._rotate_left()
-            event = "rotate_left"
+            event = ROTATE_LEFT_EVENT
         else:
             self._rotate_right()
-            event = "rotate_right"
+            event = ROTATE_RIGHT_EVENT
 
         return event
 
@@ -139,7 +139,7 @@ class FrameObject:
         max_pixel = frame_size - EDGE
         if (0 <= x1 < max_pixel) and (0 <= x2 < max_pixel) and (0 <= y1 < max_pixel) and (0 <= y2 < max_pixel):
             self.position = [x1, y1, x2, y2]
-            event = "move"
+            event = MOVE_EVENT
         else:
             event = self.rotate()
 

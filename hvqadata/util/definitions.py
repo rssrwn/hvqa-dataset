@@ -21,12 +21,19 @@ CLOSE_OCTO = 5
 ROT_PROB = 0.1
 MOVE_PIXELS = 15
 
+NO_EVENT = "nothing"
+MOVE_EVENT = "move"
+ROTATE_LEFT_EVENT = "rotate-left"
+ROTATE_RIGHT_EVENT = "rotate-right"
+
 
 # *** QA Pairs ***
 
 QS_PER_VIDEO = 10
 
 QUESTION_OBJ_PROPS = ["colour", "rotation"]
+
+ACTIONS = [MOVE_EVENT, ROTATE_LEFT_EVENT, ROTATE_RIGHT_EVENT]
 
 
 # *** Number of objects ***

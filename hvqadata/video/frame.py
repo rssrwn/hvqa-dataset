@@ -88,7 +88,7 @@ class Frame:
         # If the octopus has already disappeared then nothing happens
         if self.octopus is None:
             next_frame.octopus = None
-            return next_frame, ["no event"]
+            return next_frame, [NO_EVENT]
 
         next_frame.octopus = self.octopus.copy(next_frame)
 
