@@ -3,7 +3,47 @@
 import json
 from pathlib import Path
 
+from hvqadata.util.exceptions import *
 from hvqadata.util.definitions import CLOSE_OCTO as CLOSE_TO
+
+
+def append_in_dict_(coll, key, elem):
+    """
+    Add <elem> to list which is stored in dict <coll> under key <key>
+    Note: Updates <coll> in place
+
+    :param coll: Dict
+    :param key: Key used to index <coll>
+    :param elem: Elem to append to list stored under <key> in <coll>
+    """
+
+    items = coll.get(key)
+    if items is None:
+        coll[key] = [elem]
+    else:
+        items.append(elem)
+
+
+def format_rotation_value(rotation):
+    """
+    Produce a readable str referring to the rotation of an object
+
+    :param rotation: Rotation int
+    :return: Rotation str
+    """
+
+    if rotation == 0:
+        val = "upward-facing"
+    elif rotation == 1:
+        val = "right-facing"
+    elif rotation == 2:
+        val = "downward-facing"
+    elif rotation == 3:
+        val = "left-facing"
+    else:
+        raise UnknownPropertyValueException(f"Unknown rotation value: {rotation}")
+
+    return val
 
 
 def get_video_dicts(data_dir):

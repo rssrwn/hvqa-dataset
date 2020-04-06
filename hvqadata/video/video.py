@@ -2,7 +2,7 @@ import random
 
 from hvqadata.video.frame import Frame
 from hvqadata.util.definitions import *
-from hvqadata.util.func import close_to
+from hvqadata.util.func import close_to, append_in_dict_, format_rotation_value
 
 
 class Video:
@@ -14,9 +14,10 @@ class Video:
         self.answers = []
         self.q_idxs = []
         self._question_funcs = [
-            # self._gen_prop_question,
-            # self._gen_relations_question,
-            self._gen_events_question
+            self._gen_prop_question,
+            self._gen_relations_question,
+            self._gen_events_question,
+            self._gen_prop_changed_question
         ]
         self._relations = [
             (close_to, "close to")
@@ -175,12 +176,7 @@ class Video:
             assert len(events) <= 1, f"Multiple actions in a single frame: {events}"
 
             if len(events) == 1:
-                action = events[0]
-                idxs = actions.get(action)
-                if idxs is None:
-                    actions[action] = [idx]
-                else:
-                    idxs.append(idx)
+                append_in_dict_(actions, events[0], idx)
 
         action_set = list(actions.keys())
         idx = random.randint(0, len(action_set) - 1)
@@ -191,6 +187,62 @@ class Video:
 
         question = f"Which action occurred immediately after frame {frame_idx}?"
         answer = action
+
+        return question, answer
+
+    def _gen_prop_changed_question(self):
+        """
+        Generate a question about which property of an object changed (and what it changed to)
+        Note: The object will always be an octopus
+        Q: What happened to the <object> immediately after <frame_idx>?
+        A: Its rotation/colour changed from <property value> to <property value>
+
+        :return: (question: str, answer: str)
+        """
+
+        obj = self.frames[0].octopus
+        obj_str = self._gen_unique_obj_str(obj, "class")
+        colour = obj.colour
+        rotation = obj.rotation
+
+        deltas = {"colour": [], "rotation": []}
+
+        # Generate possible property changes to sample from
+        for idx, frame in enumerate(self.frames[1:]):
+            if frame.octopus is not None:
+                obj = frame.octopus
+                if obj.colour != colour:
+                    append_in_dict_(deltas, "colour", (idx, colour, obj.colour))
+                    colour = obj.colour
+
+                if obj.rotation != rotation:
+                    append_in_dict_(deltas, "rotation", (idx, rotation, obj.rotation))
+                    rotation = obj.rotation
+
+        props = list(deltas.keys())
+        random.shuffle(props)
+
+        prop = None
+        delta = None
+
+        # Try to sample question from each property in random order
+        for prop_ in props:
+            prop_deltas = deltas[prop_]
+            if len(prop_deltas) != 0:
+                idx = random.randint(0, len(prop_deltas) - 1)
+                delta = prop_deltas[idx]
+                prop = prop_
+
+        if delta is None:
+            return None
+
+        frame_idx, old_val, new_val = delta
+        if prop == "rotation":
+            old_val = format_rotation_value(old_val)
+            new_val = format_rotation_value(new_val)
+
+        question = f"What happened to the {obj_str} immediately after frame {frame_idx}?"
+        answer = f"Its {prop} changed from {old_val} to {new_val}"
 
         return question, answer
 
@@ -322,14 +374,7 @@ class Video:
         if prop != "class":
             unique_prop_val = obj.get_prop_val(prop)
             if prop == "rotation":
-                if unique_prop_val == 0:
-                    unique_prop_val = "upward-facing"
-                elif unique_prop_val == 1:
-                    unique_prop_val = "right-facing"
-                elif unique_prop_val == 2:
-                    unique_prop_val = "downward-facing"
-                elif unique_prop_val == 3:
-                    unique_prop_val = "left-facing"
+                unique_prop_val = format_rotation_value(unique_prop_val)
 
             unique_prop_val = str(unique_prop_val) + " "
 
