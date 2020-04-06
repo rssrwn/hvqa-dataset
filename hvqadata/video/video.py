@@ -18,7 +18,8 @@ class Video:
             # self._gen_relations_question,
             # self._gen_events_question,
             # self._gen_prop_changed_question,
-            self._gen_repetition_count_question
+            # self._gen_repetition_count_question,
+            self._gen_state_transition_question
         ]
         self._relations = [
             (close_to, "close to")
@@ -165,7 +166,7 @@ class Video:
         """
         Generate a question which asks about which action occurred
         Q: Which action occurred immediately after frame <frame_idx>?
-        A: move/rotate-left/rotate-right
+        A: move/rotate left/rotate right
 
         :return: (question: str, answer: str)
         """
@@ -258,6 +259,9 @@ class Video:
         """
 
         event_counts = self._count_events()
+        if event_counts.get(NO_EVENT) is not None:
+            del event_counts[NO_EVENT]
+
         events = list(event_counts.keys())
         idx = random.randint(0, len(events) - 1)
         event = events[idx]
@@ -279,6 +283,9 @@ class Video:
         """
 
         event_counts = self._count_events()
+        if event_counts.get(NO_EVENT) is not None:
+            del event_counts[NO_EVENT]
+
         events = list(event_counts.keys())
         random.shuffle(events)
 
@@ -304,6 +311,83 @@ class Video:
         answer = question_event
 
         return question, answer
+
+    def _gen_state_transition_question(self):
+        """
+        Generate a question about what the octopus does after something happens
+        Q: What does the <object> do immediately after <event (preposition tense)> [for the <nth> time]?
+        A: move/rotate left/rotate right
+        Note: The object is always the octopus
+
+        :return: (question: str, answer: str)
+        """
+
+        event_idxs = self._event_frame_idxs()
+
+        # We don't care about frames that we know the octopus is not in
+        if event_idxs.get(NO_EVENT) is not None:
+            del event_idxs[NO_EVENT]
+        if event_idxs.get(EAT_BAG_EVENT) is not None:
+            del event_idxs[NO_EVENT]
+
+        # Move events are likely to be difficult to express succinctly
+        if event_idxs.get(MOVE_EVENT) is not None:
+            del event_idxs[MOVE_EVENT]
+
+        # Remove events which we can't make a question out of
+        for event, idxs in event_idxs:
+            idxs = [idx for idx in idxs if idx < NUM_FRAMES - 2]
+            if len(idxs) == 0:
+                del event_idxs[event]
+
+        events = event_idxs.keys()
+        random.shuffle(events)
+
+        question_event = None
+        nth = None
+        is_single_occ = False
+        frame_idx = None
+
+        for event in events:
+            idxs = event_idxs[event]
+            if len(idxs) > MAX_OCCURRENCE:
+                idxs = idxs[:MAX_OCCURRENCE]
+
+            if len(idxs) > 0:
+                idx = random.randint(0, len(idxs) - 1)
+                nth, frame_idx = list(enumerate(idxs))[idx]
+                question_event = event
+                if len(idxs) == 1:
+                    is_single_occ = True
+
+        if question_event is None:
+            return None
+
+        # Find next action (answer)
+        actions = self.events[frame_idx + 1]
+        actions = [action for action in actions if action in ACTIONS]
+
+        assert len(actions) == 1, f"Multiple (or no) actions in a single frame: {actions}"
+
+        action = actions[0]
+
+        event_noun = EVENTS_TO_NOUN[question_event]
+        occurrence_str = self._format_occ_str(nth + 1, is_single_occ)
+        question = f"What does the octopus do immediately after {event_noun}{occurrence_str}?"
+        answer = action
+
+        return question, answer
+
+    def _event_frame_idxs(self):
+        idxs = {event: [] for event in EVENTS}
+        for idx, events in enumerate(self.events):
+            for event in events:
+                if event[:CHANGE_COLOUR_LENGTH] == "change colour":
+                    event = "change colour"
+
+                idxs[event].append(idx)
+
+        return idxs
 
     def _count_events(self):
         counts = {event: 0 for event in EVENTS}
@@ -437,6 +521,16 @@ class Video:
             return unique_props[0]
 
         return None
+
+    @staticmethod
+    def _format_occ_str(occ, is_singular_occ):
+        if is_singular_occ:
+            return ""
+
+        assert occ <= MAX_OCCURRENCE, f"Number of occurrences: {occ} is too large. Max is: {MAX_OCCURRENCE}"
+
+        occ_str = OCCURRENCES[occ]
+        return occ_str
 
     @staticmethod
     def _gen_unique_obj_str(obj, prop):

@@ -39,7 +39,25 @@ QS_PER_VIDEO = 10
 QUESTION_OBJ_PROPS = ["colour", "rotation"]
 
 ACTIONS = [MOVE_EVENT, ROTATE_LEFT_EVENT, ROTATE_RIGHT_EVENT]
-EVENTS = [MOVE_EVENT, ROTATE_LEFT_EVENT, ROTATE_RIGHT_EVENT, EAT_FISH_EVENT, EAT_BAG_EVENT, "change colour"]
+EVENTS = [MOVE_EVENT, ROTATE_LEFT_EVENT, ROTATE_RIGHT_EVENT, EAT_FISH_EVENT, EAT_BAG_EVENT, "change colour", NO_EVENT]
+
+MAX_OCCURRENCE = 5
+OCCURRENCES = {
+    1: "first time",
+    2: "second time",
+    3: "third time",
+    4: "fourth time",
+    5: "firth time"
+}
+
+EVENTS_TO_NOUN = {
+    MOVE_EVENT: "moving",
+    ROTATE_LEFT_EVENT: "rotating left",
+    ROTATE_RIGHT_EVENT: "rotating right",
+    EAT_FISH_EVENT: "eating a fish",
+    EAT_BAG_EVENT: "eating a bag",
+    "change colour": "changing colour"
+}
 
 
 # *** Number of objects ***
