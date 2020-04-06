@@ -2,7 +2,7 @@ import random
 
 from hvqadata.video.frame import Frame
 from hvqadata.util.definitions import *
-from hvqadata.util.func import close_to, append_in_dict_, format_rotation_value
+from hvqadata.util.func import close_to, append_in_dict_, format_rotation_value, increment_in_map_
 
 
 class Video:
@@ -14,10 +14,11 @@ class Video:
         self.answers = []
         self.q_idxs = []
         self._question_funcs = [
-            self._gen_prop_question,
-            self._gen_relations_question,
-            self._gen_events_question,
-            self._gen_prop_changed_question
+            # self._gen_prop_question,
+            # self._gen_relations_question,
+            # self._gen_events_question,
+            # self._gen_prop_changed_question,
+            self._gen_repetition_count_question
         ]
         self._relations = [
             (close_to, "close to")
@@ -264,6 +265,43 @@ class Video:
 
         question = f"How many times does the octopus {event}?"
         answer = str(count)
+
+        return question, answer
+
+    def _gen_repeating_action_question(self):
+        """
+        Generate a question asking about which event occurs a given number of times
+        Q: What does the <object> do <n> times?
+        A: <event>
+        Note: The object will always be the octopus
+
+        :return: (question: str, answer: str)
+        """
+
+        event_counts = self._count_events()
+        events = list(event_counts.keys())
+        random.shuffle(events)
+
+        # Track the number of times each count occurs
+        counts = {}
+        for _, count in event_counts:
+            increment_in_map_(counts, count)
+
+        question_count = None
+        question_event = None
+
+        for event in events:
+            count = event_counts[event]
+            num_counts = counts[count]
+            if count != 0 and num_counts == 1:
+                question_count = count
+                question_event = event
+
+        if question_count is None:
+            return None
+
+        question = f"What does the octopus do {question_count} times?"
+        answer = question_event
 
         return question, answer
 
