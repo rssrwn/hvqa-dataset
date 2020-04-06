@@ -14,12 +14,12 @@ class Video:
         self.answers = []
         self.q_idxs = []
         self._question_funcs = [
-            # self._gen_prop_question,
-            # self._gen_relations_question,
+            self._gen_prop_question,
+            self._gen_relations_question,
             self._gen_events_question,
-            # self._gen_prop_changed_question,
-            # self._gen_repetition_count_question,
-            # self._gen_repeating_action_question,
+            self._gen_prop_changed_question,
+            self._gen_repetition_count_question,
+            self._gen_repeating_action_question,
             self._gen_state_transition_question
         ]
         self._relations = [

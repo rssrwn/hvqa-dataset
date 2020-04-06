@@ -1,5 +1,4 @@
 import argparse
-import numpy as np
 
 from hvqadata.util.func import get_video_dicts, increment_in_map_
 from hvqadata.util.definitions import CHANGE_COLOUR_LENGTH
@@ -101,31 +100,26 @@ def count_fish_eaten(video_dicts):
     print(f"Total number of videos: {num_videos}")
 
 
-def analyse_pixels(dataset):
-    img, target = dataset[0]
-    num_channels = img.shape[0]
-    pixels = [[] for _ in range(num_channels)]
+def analyse_questions(video_dicts):
+    counts = {}
+    for video in video_dicts:
+        question_types = video["question_types"]
+        for question in question_types:
+            increment_in_map_(counts, question)
 
-    num_samples = 1000
-    idxs = np.random.randint(0, len(dataset), (num_samples,))
-    for idx in idxs:
-        img, target = dataset[idx]
-        img = img.numpy()
-        for c_idx in range(num_channels):
-            pixels[c_idx].append(list(img[c_idx, :, :].reshape(-1)))
+    num_questions = sum([cnt for _, cnt in counts.items()])
 
-    means = []
-    stddevs = []
-    for arr in pixels:
-        means.append(np.array(arr).mean())
-        stddevs.append(np.array(arr).std())
+    counts = counts.items()
+    counts = sorted(counts, key=lambda pair: pair[0])
 
-    print("Dataset statistics per channel:")
-    print(f"Means:    {tuple(means)}")
-    print(f"Std devs: {tuple(stddevs)}")
+    print(f"{'Question Type' :<20}{'Occurrences' :<15}Frequency")
+    for question_type, count in counts:
+        print(f"{question_type:<20}{count:<15}{(count / num_questions) * 100:.3}%")
+
+    print(f"Total number of questions: {num_questions}")
 
 
-def main(data_dir, events, colours, rotations, fish, pixels):
+def main(data_dir, events, colours, rotations, fish, questions):
     video_dicts = get_video_dicts(data_dir)
 
     if events:
@@ -144,10 +138,9 @@ def main(data_dir, events, colours, rotations, fish, pixels):
         print("Analysing number of fish eaten...")
         count_fish_eaten(video_dicts)
 
-    # if pixels:
-    #     print("Analysing pixels...")
-    #     dataset = ClassificationDataset(data_dir, transforms=detector_transforms)
-    #     analyse_pixels(dataset)
+    if questions:
+        print("Analysing question distribution...")
+        analyse_questions(video_dicts)
 
 
 if __name__ == '__main__':
@@ -156,7 +149,7 @@ if __name__ == '__main__':
     parser.add_argument("-c", "--colours", action="store_true", default=False)
     parser.add_argument("-r", "--rotations", action="store_true", default=False)
     parser.add_argument("-f", "--fish", action="store_true", default=False)
-    parser.add_argument("-p", "--pixels", action="store_true", default=False)
+    parser.add_argument("-q", "--questions", action="store_true", default=False)
     parser.add_argument("data_dir", type=str)
     args = parser.parse_args()
-    main(args.data_dir, args.events, args.colours, args.rotations, args.fish, args.pixels)
+    main(args.data_dir, args.events, args.colours, args.rotations, args.fish, args.questions)
