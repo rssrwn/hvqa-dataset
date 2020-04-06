@@ -24,6 +24,14 @@ def append_in_dict_(coll, key, elem):
         items.append(elem)
 
 
+def increment_in_map_(coll, key):
+    curr_value = coll.get(key)
+    if not curr_value:
+        curr_value = 0
+
+    coll[key] = curr_value + 1
+
+
 def format_rotation_value(rotation):
     """
     Produce a readable str referring to the rotation of an object

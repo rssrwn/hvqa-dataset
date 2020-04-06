@@ -1,22 +1,15 @@
 import argparse
 import numpy as np
 
-from hvqadata.util.func import get_video_dicts
+from hvqadata.util.func import get_video_dicts, increment_in_map_
+from hvqadata.util.definitions import CHANGE_COLOUR_LENGTH
 
 
 def extract_event(event):
-    if event[0:13] == "change colour":
+    if event[0:CHANGE_COLOUR_LENGTH] == "change colour":
         event = "change colour"
 
     return event
-
-
-def increment_in_map(coll, key):
-    curr_value = coll.get(key)
-    if not curr_value:
-        curr_value = 0
-
-    coll[key] = curr_value + 1
 
 
 def count_events(video_dicts):
@@ -31,7 +24,7 @@ def count_events(video_dicts):
 
     event_dict = {}
     for event in event_list:
-        increment_in_map(event_dict, event)
+        increment_in_map_(event_dict, event)
 
     print(f"{'Event name' :<20}{'Occurrences' :<15}Frequency")
     for event, num in event_dict.items():
@@ -51,9 +44,9 @@ def count_colours(video_dicts):
             objects = frame["objects"]
             for obj in objects:
                 if obj["class"] == "rock":
-                    increment_in_map(rock_colours, obj["colour"])
+                    increment_in_map_(rock_colours, obj["colour"])
                 elif obj["class"] == "octopus":
-                    increment_in_map(octo_colours, obj["colour"])
+                    increment_in_map_(octo_colours, obj["colour"])
 
     print(f"{'Rock colour' :<20}{'Occurrences' :<15}Frequency")
     for colour, num in rock_colours.items():
@@ -76,7 +69,7 @@ def count_rotations(video_dicts):
             objects = frame["objects"]
             for obj in objects:
                 if obj["class"] == "octopus":
-                    increment_in_map(rotations, obj["rotation"])
+                    increment_in_map_(rotations, obj["rotation"])
 
     print(f"{'Octopus rotations' :<20}{'Occurrences' :<15}Frequency")
     for rotation, num in rotations.items():
@@ -96,7 +89,7 @@ def count_fish_eaten(video_dicts):
             if "eat fish" in event_list:
                 num_fish_eaten += 1
 
-        increment_in_map(fish_eaten, num_fish_eaten)
+        increment_in_map_(fish_eaten, num_fish_eaten)
 
     fish_eaten = fish_eaten.items()
     fish_eaten = sorted(fish_eaten, key=lambda eaten: eaten[0])
