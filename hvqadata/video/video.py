@@ -14,11 +14,11 @@ class Video:
         self.answers = []
         self.q_idxs = []
         self._question_funcs = [
-            # self._gen_prop_question,
-            # self._gen_relations_question,
-            # self._gen_events_question,
-            # self._gen_prop_changed_question,
-            # self._gen_repetition_count_question,
+            self._gen_prop_question,
+            self._gen_relations_question,
+            self._gen_events_question,
+            self._gen_prop_changed_question,
+            self._gen_repetition_count_question,
             self._gen_state_transition_question
         ]
         self._relations = [
@@ -328,19 +328,18 @@ class Video:
         if event_idxs.get(NO_EVENT) is not None:
             del event_idxs[NO_EVENT]
         if event_idxs.get(EAT_BAG_EVENT) is not None:
-            del event_idxs[NO_EVENT]
+            del event_idxs[EAT_BAG_EVENT]
 
         # Move events are likely to be difficult to express succinctly
         if event_idxs.get(MOVE_EVENT) is not None:
             del event_idxs[MOVE_EVENT]
 
         # Remove events which we can't make a question out of
-        for event, idxs in event_idxs:
+        for event, idxs in event_idxs.items():
             idxs = [idx for idx in idxs if idx < NUM_FRAMES - 2]
-            if len(idxs) == 0:
-                del event_idxs[event]
+            event_idxs[event] = idxs
 
-        events = event_idxs.keys()
+        events = list(event_idxs.keys())
         random.shuffle(events)
 
         question_event = None
@@ -359,6 +358,7 @@ class Video:
                 question_event = event
                 if len(idxs) == 1:
                     is_single_occ = True
+                break
 
         if question_event is None:
             return None
@@ -530,6 +530,7 @@ class Video:
         assert occ <= MAX_OCCURRENCE, f"Number of occurrences: {occ} is too large. Max is: {MAX_OCCURRENCE}"
 
         occ_str = OCCURRENCES[occ]
+        occ_str = f" for the {occ_str}"
         return occ_str
 
     @staticmethod

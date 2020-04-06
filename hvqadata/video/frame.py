@@ -136,7 +136,7 @@ class Frame:
 
                 # Need nested check so we can throw UnknownObjectType
                 elif obj.obj_type == "rock":
-                    if idx == closest_rock_idx:
+                    if idx == closest_rock_idx and obj.colour != self.octopus.colour:
                         events.append(COLOUR_CHANGE_EVENT.format(from_colour=self.octopus.colour, to_colour=obj.colour))
                         self.octopus.colour = obj.colour
 
