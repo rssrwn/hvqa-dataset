@@ -119,6 +119,17 @@ def analyse_questions(video_dicts):
     print(f"Total number of questions: {num_questions}")
 
 
+def _print_cnt_dict(counts, col_name):
+    total = sum([cnt for _, cnt in counts.items()])
+
+    counts = counts.items()
+    counts = sorted(counts, key=lambda pair: pair[0])
+
+    print(f"\n{col_name:<20}{'Occurrences' :<15}Frequency")
+    for col, count in counts:
+        print(f"{col:<20}{count:<15}{(count / total) * 100:.3}%")
+
+
 def analyse_answers(video_dicts):
     q_type_video_dict_map = {}
     for video in video_dicts:
@@ -138,7 +149,7 @@ def analyse_answers(video_dicts):
 
 
 def _analyse_q_0(qa_pairs):
-    print("Analysing property QA pairs")
+    print("\nAnalysing property QA pairs...")
 
     prop_cnt = {}
     prop_val_cnt = {"colour": {}, "rotation": {}}
@@ -148,97 +159,98 @@ def _analyse_q_0(qa_pairs):
         increment_in_map_(prop_cnt, prop)
         increment_in_map_(prop_val_cnt[prop], prop_val)
 
-    print(prop_cnt)
-    print(prop_val_cnt)
+    _print_cnt_dict(prop_cnt, "Property")
+    _print_cnt_dict(prop_val_cnt["colour"], "Colour Value")
+    _print_cnt_dict(prop_val_cnt["rotation"], "Rotation Value")
 
 
 def _analyse_q_1(qa_pairs):
-    print("Analysing relation QA pairs...")
+    print("\nAnalysing relation QA pairs...")
 
     ans_cnt = {}
     for question, answer in qa_pairs:
         increment_in_map_(ans_cnt, answer)
 
-    print(ans_cnt)
+    _print_cnt_dict(ans_cnt, "Answer")
 
 
 def _analyse_q_2(qa_pairs):
-    print("Analysing event QA pairs...")
+    print("\nAnalysing event QA pairs...")
 
     action_cnt = {}
     for question, answer in qa_pairs:
         increment_in_map_(action_cnt, answer)
 
-    print(action_cnt)
+    _print_cnt_dict(action_cnt, "Action")
 
 
 def _analyse_q_3(qa_pairs):
-    print("Analysing prop changed QA pairs...")
+    print("\nAnalysing prop changed QA pairs...")
 
     prop_cnt = {}
     for question, answer in qa_pairs:
         prop = answer.split(" ")[1]
         increment_in_map_(prop_cnt, prop)
 
-    print(prop_cnt)
+    _print_cnt_dict(prop_cnt, "Property")
 
 
 def _analyse_q_4(qa_pairs):
-    print("Analysing repetition count QA pairs...")
+    print("\nAnalysing repetition count QA pairs...")
 
     event_cnt = {}
     for question, answer in qa_pairs:
         event = question.split(" ")[-1][:-1]
         increment_in_map_(event_cnt, event)
 
-    print(event_cnt)
+    _print_cnt_dict(event_cnt, "Event")
 
 
 def _analyse_q_5(qa_pairs):
-    print("Analysing repeating action QA pairs...")
+    print("\nAnalysing repeating action QA pairs...")
 
     event_cnt = {}
     for question, answer in qa_pairs:
         increment_in_map_(event_cnt, answer)
 
-    print(event_cnt)
+    _print_cnt_dict(event_cnt, "Event")
 
 
 def _analyse_q_6(qa_pairs):
-    print("Analysing state transition QA pairs...")
+    print("\nAnalysing state transition QA pairs...")
 
     action_cnt = {}
     for question, answer in qa_pairs:
         increment_in_map_(action_cnt, answer)
 
-    print(action_cnt)
+    _print_cnt_dict(action_cnt, "Action")
 
 
 def main(data_dir, events, colours, rotations, fish, questions, answers):
     video_dicts = get_video_dicts(data_dir)
 
     if events:
-        print("Analysing event occurrences...")
+        print("\nAnalysing event occurrences...")
         count_events(video_dicts)
 
     if colours:
-        print("Analysing object colours...")
+        print("\nAnalysing object colours...")
         count_colours(video_dicts)
 
     if rotations:
-        print("Analysing octopus rotations...")
+        print("\nAnalysing octopus rotations...")
         count_rotations(video_dicts)
 
     if fish:
-        print("Analysing number of fish eaten...")
+        print("\nAnalysing number of fish eaten...")
         count_fish_eaten(video_dicts)
 
     if questions:
-        print("Analysing question distribution...")
+        print("\nAnalysing question distribution...")
         analyse_questions(video_dicts)
 
     if answers:
-        print("Analysing distributions of answers to questions...")
+        print("\nAnalysing distributions of answers to questions...")
         analyse_answers(video_dicts)
 
 
