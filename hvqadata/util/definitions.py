@@ -47,7 +47,7 @@ OCCURRENCES = {
     2: "second time",
     3: "third time",
     4: "fourth time",
-    5: "firth time"
+    5: "fifth time"
 }
 
 EVENTS_TO_NOUN = {

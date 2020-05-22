@@ -1,6 +1,6 @@
 import argparse
 
-from hvqadata.util.func import get_video_dicts, increment_in_map_
+from hvqadata.util.func import get_video_dicts, increment_in_map_, append_in_dict_
 from hvqadata.util.definitions import CHANGE_COLOUR_LENGTH
 
 
@@ -119,7 +119,102 @@ def analyse_questions(video_dicts):
     print(f"Total number of questions: {num_questions}")
 
 
-def main(data_dir, events, colours, rotations, fish, questions):
+def analyse_answers(video_dicts):
+    q_type_video_dict_map = {}
+    for video in video_dicts:
+        q_types = video["question_types"]
+        for q_idx, q_type in enumerate(q_types):
+            question = video["questions"][q_idx]
+            answer = video["answers"][q_idx]
+            append_in_dict_(q_type_video_dict_map, q_type, (question, answer))
+
+    _analyse_q_0(q_type_video_dict_map[0])
+    _analyse_q_1(q_type_video_dict_map[1])
+    _analyse_q_2(q_type_video_dict_map[2])
+    _analyse_q_3(q_type_video_dict_map[3])
+    _analyse_q_4(q_type_video_dict_map[4])
+    _analyse_q_5(q_type_video_dict_map[5])
+    _analyse_q_6(q_type_video_dict_map[6])
+
+
+def _analyse_q_0(qa_pairs):
+    print("Analysing property QA pairs")
+
+    prop_cnt = {}
+    prop_val_cnt = {"colour": {}, "rotation": {}}
+    for question, answer in qa_pairs:
+        prop = question.split(" ")[1]
+        prop_val = answer
+        increment_in_map_(prop_cnt, prop)
+        increment_in_map_(prop_val_cnt[prop], prop_val)
+
+    print(prop_cnt)
+    print(prop_val_cnt)
+
+
+def _analyse_q_1(qa_pairs):
+    print("Analysing relation QA pairs...")
+
+    ans_cnt = {}
+    for question, answer in qa_pairs:
+        increment_in_map_(ans_cnt, answer)
+
+    print(ans_cnt)
+
+
+def _analyse_q_2(qa_pairs):
+    print("Analysing event QA pairs...")
+
+    action_cnt = {}
+    for question, answer in qa_pairs:
+        increment_in_map_(action_cnt, answer)
+
+    print(action_cnt)
+
+
+def _analyse_q_3(qa_pairs):
+    print("Analysing prop changed QA pairs...")
+
+    prop_cnt = {}
+    for question, answer in qa_pairs:
+        prop = answer.split(" ")[1]
+        increment_in_map_(prop_cnt, prop)
+
+    print(prop_cnt)
+
+
+def _analyse_q_4(qa_pairs):
+    print("Analysing repetition count QA pairs...")
+
+    event_cnt = {}
+    for question, answer in qa_pairs:
+        event = question.split(" ")[-1][:-1]
+        increment_in_map_(event_cnt, event)
+
+    print(event_cnt)
+
+
+def _analyse_q_5(qa_pairs):
+    print("Analysing repeating action QA pairs...")
+
+    event_cnt = {}
+    for question, answer in qa_pairs:
+        increment_in_map_(event_cnt, answer)
+
+    print(event_cnt)
+
+
+def _analyse_q_6(qa_pairs):
+    print("Analysing state transition QA pairs...")
+
+    action_cnt = {}
+    for question, answer in qa_pairs:
+        increment_in_map_(action_cnt, answer)
+
+    print(action_cnt)
+
+
+def main(data_dir, events, colours, rotations, fish, questions, answers):
     video_dicts = get_video_dicts(data_dir)
 
     if events:
@@ -142,6 +237,10 @@ def main(data_dir, events, colours, rotations, fish, questions):
         print("Analysing question distribution...")
         analyse_questions(video_dicts)
 
+    if answers:
+        print("Analysing distributions of answers to questions...")
+        analyse_answers(video_dicts)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Script for analysing built dataset")
@@ -150,6 +249,13 @@ if __name__ == '__main__':
     parser.add_argument("-r", "--rotations", action="store_true", default=False)
     parser.add_argument("-f", "--fish", action="store_true", default=False)
     parser.add_argument("-q", "--questions", action="store_true", default=False)
+    parser.add_argument("-a", "--answers", action="store_true", default=False)
     parser.add_argument("data_dir", type=str)
     args = parser.parse_args()
-    main(args.data_dir, args.events, args.colours, args.rotations, args.fish, args.questions)
+    main(args.data_dir,
+         args.events,
+         args.colours,
+         args.rotations,
+         args.fish,
+         args.questions,
+         args.answers)
