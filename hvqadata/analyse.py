@@ -1,5 +1,7 @@
 import argparse
 
+import matplotlib.pyplot as plt
+
 from hvqadata.util.func import get_video_dicts, increment_in_map_, append_in_dict_
 from hvqadata.util.definitions import CHANGE_COLOUR_LENGTH
 
@@ -117,6 +119,19 @@ def analyse_questions(video_dicts):
         print(f"{question_type:<20}{count:<15}{(count / num_questions) * 100:.3}%")
 
     print(f"Total number of questions: {num_questions}")
+
+    q_types = [q_cnt[0]+1 for q_cnt in counts]
+    cnts = [q_cnt[1] for q_cnt in counts]
+
+    fontsize = 18
+
+    plt.figure(figsize=(12,6))
+    plt.bar(q_types, cnts)
+    plt.xlabel("Question Type", fontsize=fontsize)
+    plt.ylabel("Number of questions", fontsize=fontsize)
+    plt.xticks(q_types, fontsize=fontsize)
+    plt.yticks([0, 400, 800, 1200, 1600], fontsize=fontsize)
+    plt.show()
 
 
 def _print_cnt_dict(counts, col_name):
