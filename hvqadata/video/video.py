@@ -102,6 +102,10 @@ class Video:
         prop = props[idx]
         prop_val = obj.get_prop_val(prop)
 
+        # Use external prop val
+        if prop == "rotation":
+            prop_val = format_rotation_value(prop_val)
+
         question = f"What {prop} was the {obj_str} in frame {str(frame_idx)}?"
         answer = str(prop_val)
 
