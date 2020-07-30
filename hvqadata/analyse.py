@@ -182,11 +182,19 @@ def _analyse_q_0(qa_pairs):
 def _analyse_q_1(qa_pairs):
     print("\nAnalysing relation QA pairs...")
 
+    rel_cnt = {}
     ans_cnt = {}
     for question, answer in qa_pairs:
+        words = question.split(" ")
+        if words[3] in ["close", "above", "below"]:
+            increment_in_map_(rel_cnt, words[3])
+        else:
+            increment_in_map_(rel_cnt, words[4])
+
         increment_in_map_(ans_cnt, answer)
 
     _print_cnt_dict(ans_cnt, "Answer")
+    _print_cnt_dict(rel_cnt, "Relation")
 
 
 def _analyse_q_2(qa_pairs):

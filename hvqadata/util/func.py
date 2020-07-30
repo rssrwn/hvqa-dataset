@@ -70,7 +70,7 @@ def get_video_dicts(data_dir):
             num_dicts += 1
 
         else:
-            raise FileNotFoundError(f"{json_file} does not exist")
+            print(f"WARNING: {json_file} does not exist. Skipping...")
 
     print(f"Successfully extracted {num_dicts} video dictionaries from json files")
     return dicts
@@ -120,3 +120,18 @@ def above(obj1, obj2):
     _, obj2_y1, _, _ = obj2.position
 
     return obj1_y2 < obj2_y1
+
+
+def below(obj1, obj2):
+    """
+    Returns whether obj1 is below obj2
+
+    :param obj1: FrameObject
+    :param obj2: FrameObject
+    :return: bool
+    """
+
+    _, obj1_y1, _, _ = obj1.position
+    _, _, _, obj2_y2 = obj2.position
+
+    return obj1_y1 > obj2_y2
