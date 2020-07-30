@@ -1,8 +1,8 @@
 import random
 
+import hvqadata.util.func as util
 from hvqadata.video.frame import Frame
 from hvqadata.util.definitions import *
-from hvqadata.util.func import close_to, append_in_dict_, format_rotation_value, increment_in_map_
 
 
 class Video:
@@ -23,7 +23,8 @@ class Video:
             self._gen_state_transition_question
         ]
         self._relations = [
-            (close_to, "close to")
+            (util.close_to, "close to"),
+            (util.above, "above")
         ]
 
     def random_video(self):
@@ -104,7 +105,7 @@ class Video:
 
         # Use external prop val
         if prop == "rotation":
-            prop_val = format_rotation_value(prop_val)
+            prop_val = util.format_rotation_value(prop_val)
 
         question = f"What {prop} was the {obj_str} in frame {str(frame_idx)}?"
         answer = str(prop_val)
@@ -121,7 +122,7 @@ class Video:
         """
 
         # Randomly select a (un)relation to use
-        rel_q_prob = 0.75
+        rel_q_prob = 0.5
         rel_q = random.random() < rel_q_prob
         idx = random.randint(0, len(self._relations) - 1)
         rel_func, rel_str = self._relations[idx]
@@ -152,7 +153,7 @@ class Video:
             frame_idx = random.randint(0, NUM_FRAMES - 1)
             frame = self.frames[frame_idx]
             unique_objs = self._find_unique_objs(frame)
-            _, rels = self._find_related_objs(unique_objs, close_to)
+            _, rels = self._find_related_objs(unique_objs, util.close_to)
 
         # If this question fails, try another question
         if len(rels) == 0:
@@ -183,7 +184,7 @@ class Video:
             assert len(events) <= 1, f"Multiple actions in a single frame: {events}"
 
             if len(events) == 1:
-                append_in_dict_(actions, events[0], idx)
+                util.append_in_dict_(actions, events[0], idx)
 
         action_set = list(actions.keys())
         idx = random.randint(0, len(action_set) - 1)
@@ -219,11 +220,11 @@ class Video:
             if frame.octopus is not None:
                 obj = frame.octopus
                 if obj.colour != colour:
-                    append_in_dict_(deltas, "colour", (idx, colour, obj.colour))
+                    util.append_in_dict_(deltas, "colour", (idx, colour, obj.colour))
                     colour = obj.colour
 
                 if obj.rotation != rotation:
-                    append_in_dict_(deltas, "rotation", (idx, rotation, obj.rotation))
+                    util.append_in_dict_(deltas, "rotation", (idx, rotation, obj.rotation))
                     rotation = obj.rotation
 
         props = list(deltas.keys())
@@ -245,8 +246,8 @@ class Video:
 
         frame_idx, old_val, new_val = delta
         if prop == "rotation":
-            old_val = format_rotation_value(old_val)
-            new_val = format_rotation_value(new_val)
+            old_val = util.format_rotation_value(old_val)
+            new_val = util.format_rotation_value(new_val)
 
         question = f"What happened to the {obj_str} immediately after frame {frame_idx}?"
         answer = f"Its {prop} changed from {old_val} to {new_val}"
@@ -297,7 +298,7 @@ class Video:
         # Track the number of times each count occurs
         counts = {}
         for _, count in event_counts.items():
-            increment_in_map_(counts, count)
+            util.increment_in_map_(counts, count)
 
         question_count = None
         question_event = None
@@ -432,7 +433,7 @@ class Video:
         Returns a list of related and unrelated objs
         Each element is (obj1_str, obj2_str)
 
-        :param objs: List of (FrameObjects, obj_str) to search through
+        :param objs: List of (FrameObject, obj_str) to search through
         :param rel_func: Relation function
         :return: (related, unrelated)
         """
@@ -545,7 +546,7 @@ class Video:
         if prop != "class":
             unique_prop_val = obj.get_prop_val(prop)
             if prop == "rotation":
-                unique_prop_val = format_rotation_value(unique_prop_val)
+                unique_prop_val = util.format_rotation_value(unique_prop_val)
 
             unique_prop_val = str(unique_prop_val) + " "
 

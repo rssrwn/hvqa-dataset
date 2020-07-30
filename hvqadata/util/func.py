@@ -105,3 +105,18 @@ def close_to(obj1, obj2):
             return True
 
     return False
+
+
+def above(obj1, obj2):
+    """
+    Returns whether obj1 is above obj2
+
+    :param obj1: FrameObject
+    :param obj2: FrameObject
+    :return: bool
+    """
+
+    _, _, _, obj1_y2 = obj1.position
+    _, obj2_y1, _, _ = obj2.position
+
+    return obj1_y2 < obj2_y1
