@@ -24,7 +24,8 @@ class Video:
         ]
         self._relations = [
             (util.close_to, "close to"),
-            (util.above, "above")
+            (util.above, "above"),
+            (util.below, "below")
         ]
 
     def random_video(self):
@@ -127,36 +128,20 @@ class Video:
         idx = random.randint(0, len(self._relations) - 1)
         rel_func, rel_str = self._relations[idx]
 
-        frame_idxs = list(range(NUM_FRAMES))
-        random.shuffle(frame_idxs)
+        rels, frame_idx = self._sample_relation(rel_func, rel_q)
 
-        frame_idx = None
-        rels = None
-
-        # Attempt to sample a question from each frame randomly
-        for frame_idx in frame_idxs:
-            frame = self.frames[frame_idx]
-            unique_objs = self._find_unique_objs(frame)
-            related_objs, unrelated_objs = self._find_related_objs(unique_objs, rel_func)
-            if rel_q:
-                if len(related_objs) > 0:
-                    rels = related_objs
-                    break
-            else:
-                if len(unrelated_objs) > 0:
-                    rels = unrelated_objs
-                    break
-
-        # If cannot find required relation use unrelated on a random frame (with closeness relation)
+        # If cannot find required relation use either above or below
         if rels is None:
-            rel_q = False
-            frame_idx = random.randint(0, NUM_FRAMES - 1)
-            frame = self.frames[frame_idx]
-            unique_objs = self._find_unique_objs(frame)
-            _, rels = self._find_related_objs(unique_objs, util.close_to)
+            rel_funcs = [(util.above, "above"), (util.below, "below")]
+            random.shuffle(rel_funcs)
+            for rel_func, rel_str_ in rel_funcs:
+                rels, frame_idx = self._sample_relation(rel_func, rel_q)
+                if rels is not None:
+                    rel_str = rel_str_
+                    break
 
         # If this question fails, try another question
-        if len(rels) == 0:
+        if rels is None:
             return None
 
         rel_idx = random.randint(0, len(rels) - 1)
@@ -384,6 +369,29 @@ class Video:
         answer = action
 
         return question, answer
+
+    def _sample_relation(self, rel_func, rel_q):
+        frame_idxs = list(range(NUM_FRAMES))
+        random.shuffle(frame_idxs)
+
+        frame_idx = None
+        rels = None
+
+        # Attempt to sample a question from each frame randomly
+        for frame_idx in frame_idxs:
+            frame = self.frames[frame_idx]
+            unique_objs = self._find_unique_objs(frame)
+            related_objs, unrelated_objs = self._find_related_objs(unique_objs, rel_func)
+            if rel_q:
+                if len(related_objs) > 0:
+                    rels = related_objs
+                    break
+            else:
+                if len(unrelated_objs) > 0:
+                    rels = unrelated_objs
+                    break
+
+        return rels, frame_idx
 
     def _event_frame_idxs(self):
         idxs = {event: [] for event in EVENTS}
