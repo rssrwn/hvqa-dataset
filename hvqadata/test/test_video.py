@@ -113,3 +113,55 @@ class VideoTest(unittest.TestCase):
 
         self.assertEqual(expected_rel, set(related_objs))
         self.assertEqual(expected_unrel, set(unrelated_objs))
+
+    def test_find_disappear_objs_fish(self):
+        frame1 = Frame()
+        frame1.static_objects = [obj2, obj3, obj4]
+        frame1.octopus = obj1
+
+        frame2 = Frame()
+        frame2.static_objects = [obj2, obj3]
+        frame2.octopus = obj1
+
+        frames_ = [frame1, frame2]
+
+        expected = [(obj4, 0)]
+        disappear = self.video._find_disappear_objs(frames_)
+
+        self.assertEqual(expected, disappear)
+
+    def test_find_disappear_objs_moved_octo(self):
+        frame1 = Frame()
+        frame1.static_objects = [obj2, obj3, obj4]
+        frame1.octopus = obj1
+
+        frame2 = Frame()
+        frame2.static_objects = [obj2, obj3, obj4]
+        frame2.octopus = obj7
+
+        frames_ = [frame1, frame2]
+
+        expected = []
+        disappear = self.video._find_disappear_objs(frames_)
+
+        self.assertEqual(expected, disappear)
+
+    def test_find_disappear_objs_disappear_octo(self):
+        frame1 = Frame()
+        frame1.static_objects = [obj2, obj3, obj4]
+        frame1.octopus = obj1
+
+        frame2 = Frame()
+        frame2.static_objects = [obj2, obj3]
+        frame2.octopus = obj1
+
+        frame3 = Frame()
+        frame3.static_objects = [obj3]
+        frame3.octopus = None
+
+        frames_ = [frame1, frame2, frame3]
+
+        expected = [(obj4, 0), (obj2, 1), (obj1, 1)]
+        disappear = self.video._find_disappear_objs(frames_)
+
+        self.assertEqual(expected, disappear)

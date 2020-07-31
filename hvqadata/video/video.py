@@ -370,6 +370,28 @@ class Video:
 
         return question, answer
 
+    # def _gen_explanation_question(self):
+    #     question = f"Why did the {} object disappear?"
+
+    def _find_disappear_objs(self, frames):
+        disappear = []
+        curr_objs = frames[0].get_objects()
+        for frame_idx, frame in enumerate(frames[1:]):
+            next_objs = frame.get_objects()
+            for curr_obj in curr_objs:
+                disappeared = True
+                for next_obj in next_objs:
+                    if curr_obj.obj_type == "octopus" and next_obj.obj_type == "octopus" \
+                            or curr_obj.position == next_obj.position:
+                        disappeared = False
+
+                if disappeared:
+                    disappear.append((curr_obj, frame_idx))
+
+            curr_objs = next_objs
+
+        return disappear
+
     def _sample_relation(self, rel_func, rel_q):
         frame_idxs = list(range(NUM_FRAMES))
         random.shuffle(frame_idxs)
