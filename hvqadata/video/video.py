@@ -1,6 +1,7 @@
 import random
 
 import hvqadata.util.func as util
+from hvqadata.util.exceptions import UnknownObjectTypeException
 from hvqadata.video.frame import Frame
 from hvqadata.util.definitions import *
 
@@ -370,8 +371,36 @@ class Video:
 
         return question, answer
 
-    # def _gen_explanation_question(self):
-    #     question = f"Why did the {} object disappear?"
+    def _gen_explanation_question(self):
+        # Find disappeared objs
+        disappear = self._find_disappear_objs(self.frames)
+        disappear = [obj for obj, _ in disappear]
+        random.shuffle(disappear)
+
+        # Find an obj with a unique rotation within the disappeared list
+        unique_obj = None
+        for obj1 in disappear:
+            unique = True
+            for obj2 in disappear:
+                if obj1.rotation == obj2.rotation and obj1.position != obj2.position:
+                    unique = False
+
+            if unique:
+                unique_obj = obj1
+
+        rot = util.format_rotation_value(unique_obj.rotation)
+        question = f"Why did the {rot} object disappear?"
+
+        if unique_obj.obj_type == "octopus":
+            answer = "The octopus ate a bag"
+        elif unique_obj.obj_type == "bag":
+            answer = "The bag was eaten"
+        elif unique_obj.obj_type == "fish":
+            answer = "The fish was eaten"
+        else:
+            raise UnknownObjectTypeException(f"Object type {unique_obj.obj_type} cannot disappear")
+
+        return question, answer
 
     def _find_disappear_objs(self, frames):
         disappear = []
