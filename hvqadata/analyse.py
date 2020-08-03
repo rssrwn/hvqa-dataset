@@ -140,9 +140,9 @@ def _print_cnt_dict(counts, col_name):
     counts = counts.items()
     counts = sorted(counts, key=lambda pair: pair[0])
 
-    print(f"\n{col_name:<20}{'Occurrences' :<15}Frequency")
+    print(f"\n{col_name:<25}{'Occurrences' :<15}Frequency")
     for col, count in counts:
-        print(f"{col:<20}{count:<15}{(count / total) * 100:.3}%")
+        print(f"{col:<25}{count:<15}{(count / total) * 100:.3}%")
 
 
 def analyse_answers(video_dicts):
@@ -161,6 +161,8 @@ def analyse_answers(video_dicts):
     _analyse_q_4(q_type_video_dict_map[4])
     _analyse_q_5(q_type_video_dict_map[5])
     _analyse_q_6(q_type_video_dict_map[6])
+    _analyse_q_7(q_type_video_dict_map[7])
+    _analyse_q_8(q_type_video_dict_map[8])
 
 
 def _analyse_q_0(qa_pairs):
@@ -247,6 +249,36 @@ def _analyse_q_6(qa_pairs):
         increment_in_map_(action_cnt, answer)
 
     _print_cnt_dict(action_cnt, "Action")
+
+
+def _analyse_q_7(qa_pairs):
+    print("\nAnalysing explanation QA pairs...")
+
+    rot_cnt = {}
+    ans_cnt = {}
+    for question, answer in qa_pairs:
+        splits = question.split(" ")
+        rotation = splits[3]
+        increment_in_map_(rot_cnt, rotation)
+        increment_in_map_(ans_cnt, answer)
+
+    _print_cnt_dict(rot_cnt, "Rotation")
+    _print_cnt_dict(ans_cnt, "Answer")
+
+
+def _analyse_q_8(qa_pairs):
+    print("\nAnalysing counterfactual QA pairs...")
+
+    rock_colours = {}
+    answers = {}
+    for question, answer in qa_pairs:
+        splits = question.split(" ")
+        rock_colour = splits[-2]
+        increment_in_map_(rock_colours, rock_colour)
+        increment_in_map_(answers, answer)
+
+    _print_cnt_dict(rock_colours, "Rock colour")
+    _print_cnt_dict(answers, "Answer")
 
 
 def main(data_dir, events, colours, rotations, fish, questions, answers):
