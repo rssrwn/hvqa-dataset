@@ -33,25 +33,25 @@ class FrameObject:
         else:
             raise UnknownPropertyException(f"Unknown property {prop_str}")
 
-    def random_obj(self, obj_type):
-        """
-        Create random object of type <obj_type>
+    # def random_obj(self, obj_type):
+    #     """
+    #     Create random object of type <obj_type>
+    #
+    #     :param obj_type: String of type of object to be initialised
+    #     """
+    #
+    #     if obj_type == "octopus":
+    #         self._init_octopus()
+    #     elif obj_type == "fish":
+    #         self._init_fish()
+    #     elif obj_type == "bag":
+    #         self._init_bag()
+    #     elif obj_type == "rock":
+    #         self._init_rock()
+    #     else:
+    #         raise UnknownObjectTypeException()
 
-        :param obj_type: String of type of object to be initialised
-        """
-
-        if obj_type == "octopus":
-            self._init_octopus()
-        elif obj_type == "fish":
-            self._init_fish()
-        elif obj_type == "bag":
-            self._init_bag()
-        elif obj_type == "rock":
-            self._init_rock()
-        else:
-            raise UnknownObjectTypeException()
-
-    def _init_octopus(self):
+    def init_octopus(self):
         rot = random.choice(ROTATIONS)
         box = self.frame.obj_box(OCTOPUS, rot)
         self.obj_type = "octopus"
@@ -59,25 +59,22 @@ class FrameObject:
         self.colour = OCTO_COLOUR
         self.rotation = rot
 
-    def _init_fish(self):
-        rot = random.choice(ROTATIONS)
+    def init_fish(self, rot):
         box = self.frame.obj_box(FISH, rot)
         self.obj_type = "fish"
         self.position = box
         self.colour = FISH_COLOUR
         self.rotation = rot
 
-    def _init_bag(self):
-        rot = random.choice(ROTATIONS)
+    def init_bag(self, rot):
         box = self.frame.obj_box(BAG, rot)
         self.obj_type = "bag"
         self.position = box
         self.colour = BAG_COLOUR
         self.rotation = rot
 
-    def _init_rock(self):
+    def init_rock(self, colour):
         rot = 0
-        colour = random.choice(ROCK_COLOURS)
         box = self.frame.obj_box(ROCK, rot)
         self.obj_type = "rock"
         self.position = box

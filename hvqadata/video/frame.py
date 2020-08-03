@@ -54,7 +54,7 @@ class Frame:
         """
 
         octo = FrameObject(self)
-        octo.random_obj("octopus")
+        octo.init_octopus()
         self.octopus = octo
         self._gen_static_objects("fish")
         self._gen_static_objects("bag")
@@ -63,17 +63,60 @@ class Frame:
     def _gen_static_objects(self, obj_type):
         if obj_type == "fish":
             num_objs = random.randint(MIN_FISH, MAX_FISH)
+            objs = self._create_fish(num_objs)
+
         elif obj_type == "rock":
             num_objs = random.randint(MIN_ROCK, MAX_ROCK)
+            objs = self._create_rocks(num_objs)
+
         elif obj_type == "bag":
             num_objs = random.randint(MIN_BAG, MAX_BAG)
+            objs = self._create_bags(num_objs)
+
         else:
             raise UnknownObjectTypeException(f"Unknown static object: {obj_type}")
 
-        for _ in range(num_objs):
-            obj = FrameObject(self)
-            obj.random_obj(obj_type)
+        for obj in objs:
             self.static_objects.append(obj)
+
+    def _create_fish(self, num_objs):
+        obj_list = []
+        rotations = ROTATIONS[:]
+        random.shuffle(rotations)
+        for idx in range(num_objs):
+            idx = idx % len(rotations)
+            rotation = rotations[idx]
+            obj = FrameObject(self)
+            obj.init_fish(rotation)
+            obj_list.append(obj)
+
+        return obj_list
+
+    def _create_rocks(self, num_objs):
+        obj_list = []
+        colours = ROCK_COLOURS[:]
+        random.shuffle(colours)
+        for idx in range(num_objs):
+            idx = idx % len(colours)
+            colour = colours[idx]
+            obj = FrameObject(self)
+            obj.init_rock(colour)
+            obj_list.append(obj)
+
+        return obj_list
+
+    def _create_bags(self, num_objs):
+        obj_list = []
+        rotations = ROTATIONS[:]
+        random.shuffle(rotations)
+        for idx in range(num_objs):
+            idx = idx % len(rotations)
+            rotation = rotations[idx]
+            obj = FrameObject(self)
+            obj.init_bag(rotation)
+            obj_list.append(obj)
+
+        return obj_list
 
     def move(self):
         """
