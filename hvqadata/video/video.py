@@ -372,6 +372,14 @@ class Video:
         return question, answer
 
     def _gen_explanation_question(self):
+        """
+        Generate a question asking why something happened
+        Q: Why did the <rotation> object disappear?
+        A: The octopus ate a bag / the bag was eaten / the fish was eaten
+
+        :return: (question: str, answer: str)
+        """
+
         # Find disappeared objs
         disappear = self._find_disappear_objs(self.frames)
         disappear = [obj for obj, _ in disappear]
@@ -401,6 +409,59 @@ class Video:
             raise UnknownObjectTypeException(f"Object type {unique_obj.obj_type} cannot disappear")
 
         return question, answer
+
+    def _gen_counterfactual_question(self):
+        """
+        Generate a question asking what the state would be like if an object was not there
+        Q: What colour would the octopus be in its final frame without the <colour> rock?
+        A: <colour>
+
+        :return: (question: str, answer: str)
+        """
+
+        unique_objs = self._find_unique_objs(self.frames[0])
+        unique_rocks = [obj for obj, _ in unique_objs if obj.obj_type == "rock"]
+        unique_colours = [rock.colour for rock in unique_rocks]
+        random.shuffle(unique_colours)
+
+        # If no unique rocks, we cannot sample this type of question
+        if len(unique_rocks) == 0:
+            return None
+
+        colour_changes = self._find_colour_changes(self.frames)
+        idxs = range(len(colour_changes))
+        random.shuffle(idxs)
+
+        colour = None
+        answer = None
+
+        # Since unique rocks have unique colour, we know which rock caused these (if colour in unique list)
+        for idx in idxs:
+            col_from, col_to = colour_changes[idx]
+            if col_to in unique_colours:
+                updated_col_changes = [col_to_ for _, col_to_ in colour_changes if col_to_ != col_to]
+                colour = col_to
+                answer = updated_col_changes[-1]
+
+        # If there are no colour changes (from unique rocks) use the colour of a unique rock
+        if colour is None:
+            colour = unique_colours[0]
+            answer = self.frames[0].octopus.colour
+
+        question = f"What colour would the octopus be in its final frame without the {colour} rock?"
+
+        return question, answer
+
+    def _find_colour_changes(self, frames):
+        changes = []
+        curr_colour = frames[0].octopus.colour
+        for frame in frames[1:]:
+            colour = frame.octopus.colour
+            if colour != curr_colour:
+                changes.append((curr_colour, colour))
+                curr_colour = colour
+
+        return changes
 
     def _find_disappear_objs(self, frames):
         disappear = []
