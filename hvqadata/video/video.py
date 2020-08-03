@@ -51,16 +51,27 @@ class Video:
         questions = []
         answers = []
         idxs = []
+
+        colour_changes = self._find_colour_changes(self.frames)
+        cf_extra_sample = len(colour_changes) > 1
+        cf_prob = 0.3
+
         for q_idx in range(QS_PER_VIDEO):
             qa_pair = None
             func_idx = None
-            func_idxs = list(range(len(self._question_funcs)))
-            random.shuffle(func_idxs)
-            for func_idx in func_idxs:
-                q_func = self._question_funcs[func_idx]
-                qa_pair = q_func()
-                if qa_pair is not None:
-                    break
+
+            if cf_extra_sample and random.random() < cf_prob:
+                qa_pair = self._gen_counterfactual_question()
+                func_idx = 8
+
+            else:
+                func_idxs = list(range(len(self._question_funcs)))
+                random.shuffle(func_idxs)
+                for func_idx in func_idxs:
+                    q_func = self._question_funcs[func_idx]
+                    qa_pair = q_func()
+                    if qa_pair is not None:
+                        break
 
             assert qa_pair is not None, "Could not find a question for video"
 
@@ -436,6 +447,9 @@ class Video:
         colour_changes = self._find_colour_changes(self.frames)
         idxs = list(range(len(colour_changes)))
         random.shuffle(idxs)
+
+        if len(colour_changes) == 0:
+            return None
 
         colour = None
         answer = None
