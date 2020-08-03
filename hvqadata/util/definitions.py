@@ -63,7 +63,7 @@ EVENTS_TO_NOUN = {
 # *** Number of objects ***
 
 MIN_FISH = 5
-MAX_FISH = 8
+MAX_FISH = 7
 
 MIN_BAG = 2
 MAX_BAG = 3
