@@ -21,7 +21,9 @@ class Video:
             self._gen_prop_changed_question,
             self._gen_repetition_count_question,
             self._gen_repeating_action_question,
-            self._gen_state_transition_question
+            self._gen_state_transition_question,
+            self._gen_explanation_question,
+            self._gen_counterfactual_question
         ]
         self._relations = [
             (util.close_to, "close to"),
@@ -396,6 +398,9 @@ class Video:
             if unique:
                 unique_obj = obj1
 
+        if unique_obj is None:
+            return None
+
         rot = util.format_rotation_value(unique_obj.rotation)
         question = f"Why did the {rot} object disappear?"
 
@@ -429,7 +434,7 @@ class Video:
             return None
 
         colour_changes = self._find_colour_changes(self.frames)
-        idxs = range(len(colour_changes))
+        idxs = list(range(len(colour_changes)))
         random.shuffle(idxs)
 
         colour = None
@@ -441,7 +446,10 @@ class Video:
             if col_to in unique_colours:
                 updated_col_changes = [col_to_ for _, col_to_ in colour_changes if col_to_ != col_to]
                 colour = col_to
-                answer = updated_col_changes[-1]
+                if len(updated_col_changes) == 0:
+                    answer = self.frames[0].octopus.colour
+                else:
+                    answer = updated_col_changes[-1]
 
         # If there are no colour changes (from unique rocks) use the colour of a unique rock
         if colour is None:
@@ -456,10 +464,11 @@ class Video:
         changes = []
         curr_colour = frames[0].octopus.colour
         for frame in frames[1:]:
-            colour = frame.octopus.colour
-            if colour != curr_colour:
-                changes.append((curr_colour, colour))
-                curr_colour = colour
+            if frame.octopus is not None:
+                colour = frame.octopus.colour
+                if colour != curr_colour:
+                    changes.append((curr_colour, colour))
+                    curr_colour = colour
 
         return changes
 
