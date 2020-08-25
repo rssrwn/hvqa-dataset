@@ -32,34 +32,47 @@ class OceanQADataset:
         dataset = OceanQADataset(videos)
         return dataset
 
-    def _gen_qa_pairs(self):
-        questions = []
-        answers = []
-        idxs = []
+    def gen_qa_pairs(self, qs_attempts=None):
+        qs_attempts = len(self.videos) * 10 if qs_attempts is None else qs_attempts
 
-        for q_idx in range(QS_PER_VIDEO):
-            func_idx = random.randint(0, len(self._question_funcs) - 1)
-            q_func = self._question_funcs[func_idx]
-            qa_pair = q_func()
+        q_type_cnts = {q_type: 0 for q_type in range(len(self._question_funcs))}
+        q_dim_cnts = {
+            0: {
+                "colour": {col: 0 for col in COLOURS},
+                "rotation": {rot: 0 for rot in ROTATIONS}
+            }
+        }
 
-            question, answer = qa_pair
-            questions.append(question)
-            answers.append(answer)
-            idxs.append(func_idx)
+        for _ in range(qs_attempts):
+            v_idxs = list(range(len(self.videos)))
+            random.shuffle(v_idxs)
 
-        dedup_qs = set()
-        dedup_idxs = []
-        for q_idx, question in enumerate(questions):
-            if question not in dedup_qs:
-                dedup_qs.add(question)
-                dedup_idxs.append(q_idx)
+            for v_idx in v_idxs:
+                video = self.videos[v_idx]
+                q_func = self._sample_q_func(q_type_cnts)
+                qa_pair = q_func(video)
+                if qa_pair is not None:
+                    break
 
-        random.shuffle(dedup_idxs)
-        questions = [questions[idx] for idx in dedup_idxs]
-        answers = [answers[idx] for idx in dedup_idxs]
-        q_types = [idxs[idx] for idx in dedup_idxs]
+        # dedup_qs = set()
+        # dedup_idxs = []
+        # for q_idx, question in enumerate(questions):
+        #     if question not in dedup_qs:
+        #         dedup_qs.add(question)
+        #         dedup_idxs.append(q_idx)
+        #
+        # random.shuffle(dedup_idxs)
+        # questions = [questions[idx] for idx in dedup_idxs]
+        # answers = [answers[idx] for idx in dedup_idxs]
+        # q_types = [idxs[idx] for idx in dedup_idxs]
 
-        return questions, answers, q_types
+    def _sample_q_func(self, q_type_cnts):
+        total = sum(q_type_cnts.values())
+        weight_dict = {q_type: total - cnt for q_type, cnt in q_type_cnts}
+        q_types, weights = tuple(zip(*weight_dict.items()))
+        q_type = random.choices(q_types, weights=weights, k=1)[0]
+        q_func = self._question_funcs[q_type]
+        return q_func
 
     def _gen_prop_question(self):
         """

@@ -59,6 +59,8 @@ EVENTS_TO_NOUN = {
     "change colour": "changing colour"
 }
 
+COLOURS = ["white", "red", "silver", "brown", "blue", "purple", "green"]
+
 
 # *** Number of objects ***
 
