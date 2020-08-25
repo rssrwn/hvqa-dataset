@@ -13,7 +13,7 @@ class Video:
         self.events = []
         self.questions = []
         self.answers = []
-        self.q_idxs = []
+        self.q_types = []
         self._question_funcs = [
             self._gen_prop_question,
             self._gen_relations_question,
@@ -42,10 +42,10 @@ class Video:
             self.frames.append(curr)
             self.events.append(events)
 
-        questions, answers, idxs = self._gen_qa_pairs()
+        questions, answers, q_types = self._gen_qa_pairs()
         self.questions = questions
         self.answers = answers
-        self.q_idxs = idxs
+        self.q_types = q_types
 
     def _gen_qa_pairs(self):
         questions = []
@@ -693,5 +693,5 @@ class Video:
             "events": self.events,
             "questions": self.questions,
             "answers": self.answers,
-            "question_types": self.q_idxs
+            "question_types": self.q_types
         }

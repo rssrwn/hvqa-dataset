@@ -23,8 +23,8 @@ MOVE_PIXELS = 15
 
 NO_EVENT = "nothing"
 MOVE_EVENT = "move"
-ROTATE_LEFT_EVENT = "rotate left"
-ROTATE_RIGHT_EVENT = "rotate right"
+ROTATE_LEFT_EVENT = "rotate anti-clockwise"
+ROTATE_RIGHT_EVENT = "rotate clockwise"
 
 EAT_FISH_EVENT = "eat a fish"
 EAT_BAG_EVENT = "eat a bag"
@@ -34,7 +34,7 @@ CHANGE_COLOUR_LENGTH = 13
 
 # *** QA Pairs ***
 
-QS_PER_VIDEO = 10
+QS_PER_VIDEO = 50
 
 QUESTION_OBJ_PROPS = ["colour", "rotation"]
 
