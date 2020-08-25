@@ -52,35 +52,29 @@ class Video:
         answers = []
         idxs = []
 
-        colour_changes = self._find_colour_changes(self.frames)
-        cf_extra_sample = len(colour_changes) > 1
-        cf_prob = 0.3
-
         for q_idx in range(QS_PER_VIDEO):
-            qa_pair = None
-            func_idx = None
-
-            if cf_extra_sample and random.random() < cf_prob:
-                qa_pair = self._gen_counterfactual_question()
-                func_idx = 8
-
-            else:
-                func_idxs = list(range(len(self._question_funcs)))
-                random.shuffle(func_idxs)
-                for func_idx in func_idxs:
-                    q_func = self._question_funcs[func_idx]
-                    qa_pair = q_func()
-                    if qa_pair is not None:
-                        break
-
-            assert qa_pair is not None, "Could not find a question for video"
+            func_idx = random.randint(0, len(self._question_funcs) - 1)
+            q_func = self._question_funcs[func_idx]
+            qa_pair = q_func()
 
             question, answer = qa_pair
             questions.append(question)
             answers.append(answer)
             idxs.append(func_idx)
 
-        return questions, answers, idxs
+        dedup_qs = set()
+        dedup_idxs = []
+        for q_idx, question in enumerate(questions):
+            if question not in dedup_qs:
+                dedup_qs.add(question)
+                dedup_idxs.append(q_idx)
+
+        random.shuffle(dedup_idxs)
+        questions = [questions[idx] for idx in dedup_idxs]
+        answers = [answers[idx] for idx in dedup_idxs]
+        q_types = [idxs[idx] for idx in dedup_idxs]
+
+        return questions, answers, q_types
 
     def _gen_prop_question(self):
         """
@@ -95,10 +89,7 @@ class Video:
         frame = self.frames[frame_idx]
 
         # Find obj for question
-        # If no unique obj exists, use first frame which is guaranteed to contain octopus
         obj = self._find_unique_obj(frame)
-        if obj is None:
-            obj = self._find_unique_obj(self.frames[0])
 
         # If this question fails, try another question
         if obj is None:
