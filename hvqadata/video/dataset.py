@@ -7,7 +7,7 @@ from hvqadata.util.definitions import *
 
 
 class OceanQADataset:
-    def __init__(self, num_videos):
+    def __init__(self, videos):
         self._question_funcs = [
             self._gen_prop_question,
             self._gen_relations_question,
@@ -24,7 +24,13 @@ class OceanQADataset:
             (util.above, "above"),
             (util.below, "below")
         ]
-        self.videos = [Video.random_video() for _ in range(num_videos)]
+        self.videos = videos
+
+    @staticmethod
+    def random_videos(num_videos):
+        videos = [Video.random_video() for _ in range(num_videos)]
+        dataset = OceanQADataset(videos)
+        return dataset
 
     def _gen_qa_pairs(self):
         questions = []
