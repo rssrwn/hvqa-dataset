@@ -19,11 +19,11 @@ class OceanQADataset:
             self._gen_explanation_question,
             self._gen_counterfactual_question
         ]
-        self._relations = [
-            (util.close_to, "close to"),
-            (util.above, "above"),
-            (util.below, "below")
-        ]
+        self._relations = {
+            "close to": util.close_to,
+            "above": util.above,
+            "below": util.below
+        }
         self.videos = videos
 
     @staticmethod
@@ -40,6 +40,9 @@ class OceanQADataset:
             0: {
                 "colour": {col: 0 for col in COLOURS},
                 "rotation": {rot: 0 for rot in ROTATIONS}
+            },
+            1: {
+                rel: {"yes": 0, "no": 0} for rel, _ in self._relations.items()
             }
         }
 
@@ -117,7 +120,7 @@ class OceanQADataset:
 
         return qa_pair
 
-    def _gen_relations_question(self):
+    def _gen_relations_question(self, video, q_cnts):
         """
         Generate question asking about a relation between two objects in a single frame
         Q: Was the <object> <relation> to the <object> in frame <frame idx>?
@@ -126,36 +129,38 @@ class OceanQADataset:
         :return: (question: str, answer: str)
         """
 
-        # Randomly select a (un)relation to use
-        rel_q_prob = 0.5
-        rel_q = random.random() < rel_q_prob
-        idx = random.randint(0, len(self._relations) - 1)
-        rel_func, rel_str = self._relations[idx]
+        rels_cnts = {rel: sum(cnts.values()) for rel, cnts in q_cnts}
+        rels, weights = tuple(zip(*rels_cnts.items()))
+        rel = random.choices(rels, weights=weights, k=1)[0]
 
-        rels, frame_idx = self._sample_relation(rel_func, rel_q)
+        rel_total = rels_cnts[rel]
+        rel_cnts = {ans: rel_total - cnt for ans, cnt in q_cnts[rel]}
+        answers, weights = tuple(zip(*rel_cnts.items()))
+        answer = random.choices(answers, weights=weights, k=1)[0]
 
-        # If cannot find required relation use either above or below
-        if rels is None:
-            rel_funcs = [(util.above, "above"), (util.below, "below")]
-            random.shuffle(rel_funcs)
-            for rel_func, rel_str_ in rel_funcs:
-                rels, frame_idx = self._sample_relation(rel_func, rel_q)
-                if rels is not None:
-                    rel_str = rel_str_
-                    break
+        rel_func = self._relations[rel]
+        is_yes = answer == "yes"
+        rels, frame_idx = self._sample_relation(video, rel_func, is_yes)
 
         # If this question fails, try another question
         if rels is None:
             return None
 
-        rel_idx = random.randint(0, len(rels) - 1)
-        rel = rels[rel_idx]
-        obj1_str, obj2_str = rel
+        qa_pair = None
 
-        question = f"Was the {obj1_str} {rel_str} the {obj2_str} in frame {frame_idx}?"
-        answer = "yes" if rel_q else "no"
+        random.shuffle(rels)
+        for rel_idx in range(len(rels)):
+            rel_objs = rels[rel_idx]
+            obj1_str, obj2_str = rel_objs
+            question = f"Was the {obj1_str} {rel} the {obj2_str} in frame {frame_idx}?"
+            if question not in video.questions:
+                qa_pair = question, answer
+                break
 
-        return question, answer
+        if qa_pair is not None:
+            q_cnts[rel][answer] += 1
+
+        return qa_pair
 
     def _gen_events_question(self):
         """
@@ -495,7 +500,7 @@ class OceanQADataset:
 
         return disappear
 
-    def _sample_relation(self, rel_func, rel_q):
+    def _sample_relation(self, video, rel_func, is_yes):
         frame_idxs = list(range(NUM_FRAMES))
         random.shuffle(frame_idxs)
 
@@ -504,10 +509,10 @@ class OceanQADataset:
 
         # Attempt to sample a question from each frame randomly
         for frame_idx in frame_idxs:
-            frame = self.frames[frame_idx]
+            frame = video.frames[frame_idx]
             unique_objs = self._find_unique_objs(frame)
             related_objs, unrelated_objs = self._find_related_objs(unique_objs, rel_func)
-            if rel_q:
+            if is_yes:
                 if len(related_objs) > 0:
                     rels = related_objs
                     break
