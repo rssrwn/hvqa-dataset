@@ -1,3 +1,5 @@
+import random
+
 from hvqadata.video.frame import Frame
 from hvqadata.util.definitions import *
 
@@ -27,6 +29,13 @@ class Video:
 
         video = Video(frames, events)
         return video
+
+    def shuffle_questions_(self):
+        q_idxs = range(len(self.questions))
+        random.shuffle(q_idxs)
+        self.questions = [self.questions[q_idx] for q_idx in q_idxs]
+        self.answers = [self.answers[q_idx] for q_idx in q_idxs]
+        self.q_types = [self.q_types[q_idx] for q_idx in q_idxs]
 
     def _add_question(self, question, q_type, answer):
         self.questions.append(question)

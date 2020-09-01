@@ -58,17 +58,9 @@ class OceanQADataset:
                         q_type_cnts[q_type] += 1
                         break
 
-        # dedup_qs = set()
-        # dedup_idxs = []
-        # for q_idx, question in enumerate(questions):
-        #     if question not in dedup_qs:
-        #         dedup_qs.add(question)
-        #         dedup_idxs.append(q_idx)
-        #
-        # random.shuffle(dedup_idxs)
-        # questions = [questions[idx] for idx in dedup_idxs]
-        # answers = [answers[idx] for idx in dedup_idxs]
-        # q_types = [idxs[idx] for idx in dedup_idxs]
+        # Shuffle all questions in each video
+        for video in self.videos:
+            video.shuffle_questions_()
 
     def _sample_q_func(self, q_type_cnts):
         total = sum(q_type_cnts.values())
