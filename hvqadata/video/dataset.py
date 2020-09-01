@@ -11,7 +11,7 @@ class OceanQADataset:
         self._question_funcs = [
             self._gen_prop_question,
             self._gen_relations_question,
-            self._gen_events_question,
+            self._gen_action_question,
             self._gen_prop_changed_question,
             self._gen_repetition_count_question,
             self._gen_repeating_action_question,
@@ -43,7 +43,8 @@ class OceanQADataset:
             },
             1: {
                 rel: {"yes": 0, "no": 0} for rel, _ in self._relations.items()
-            }
+            },
+            2: {action: 0 for action in ACTIONS}
         }
 
         for _ in range(qs_attempts):
@@ -162,7 +163,7 @@ class OceanQADataset:
 
         return qa_pair
 
-    def _gen_events_question(self):
+    def _gen_action_question(self, video, q_cnts):
         """
         Generate a question which asks about which action occurred
         Q: Which action occurred immediately after frame <frame_idx>?
@@ -171,26 +172,28 @@ class OceanQADataset:
         :return: (question: str, answer: str)
         """
 
-        actions = {}
-        for idx, events in enumerate(self.events):
-            events = [event for event in events if event in ACTIONS]
+        total = sum(q_cnts.values())
+        action_cnts = {action: total - cnt for action, cnt in q_cnts}
+        actions, weights = tuple(zip(*action_cnts.items()))
+        answer = random.choices(actions, weights=weights, k=1)[0]
 
-            assert len(events) <= 1, f"Multiple actions in a single frame: {events}"
+        frame_idxs = [idx for idx, events in enumerate(video.events) if answer in events]
+        if len(frame_idxs) == 0:
+            return None
 
-            if len(events) == 1:
-                util.append_in_dict_(actions, events[0], idx)
+        qa_pair = None
 
-        action_set = list(actions.keys())
-        idx = random.randint(0, len(action_set) - 1)
-        action = action_set[idx]
-        frame_idxs = actions[action]
-        idx = random.randint(0, len(frame_idxs) - 1)
-        frame_idx = frame_idxs[idx]
+        random.shuffle(frame_idxs)
+        for frame_idx in frame_idxs:
+            question = f"Which action occurred immediately after frame {frame_idx}?"
+            if question not in video.questions:
+                qa_pair = question, answer
+                break
 
-        question = f"Which action occurred immediately after frame {frame_idx}?"
-        answer = action
+        if qa_pair is not None:
+            q_cnts[answer] += 1
 
-        return question, answer
+        return qa_pair
 
     def _gen_prop_changed_question(self):
         """
