@@ -37,17 +37,10 @@ class Video:
         self.answers = [self.answers[q_idx] for q_idx in q_idxs]
         self.q_types = [self.q_types[q_idx] for q_idx in q_idxs]
 
-    def _add_question(self, question, q_type, answer):
+    def add_question(self, question, q_type, answer):
         self.questions.append(question)
         self.q_types.append(q_type)
         self.answers.append(answer)
-
-    def add_if_orig_(self, question, q_type, answer):
-        if question not in self.questions:
-            self._add_question(question, q_type, answer)
-            return True
-
-        return False
 
     def to_dict(self):
         return {

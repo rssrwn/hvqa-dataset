@@ -51,12 +51,12 @@ class OceanQADataset:
 
             for v_idx in v_idxs:
                 video = self.videos[v_idx]
-                qa_pair = q_func(video)
+                qa_pair = q_func(video, q_dim_cnts[q_type])
                 if qa_pair is not None:
                     question, answer = qa_pair
-                    if video.add_if_orig_(question, q_type, answer):
-                        q_type_cnts[q_type] += 1
-                        break
+                    video.add_question(question, q_type, answer)
+                    q_type_cnts[q_type] += 1
+                    break
 
         # Shuffle all questions in each video
         for video in self.videos:
@@ -70,7 +70,7 @@ class OceanQADataset:
         q_func = self._question_funcs[q_type]
         return q_func, q_type
 
-    def _gen_prop_question(self):
+    def _gen_prop_question(self, video, q_cnts):
         """
         Generate question asking about a property of an object for a single frame
         Q: What <property> was the <object> in frame <frame_idx>?
@@ -79,38 +79,40 @@ class OceanQADataset:
         :return: (question: str, answer: str)
         """
 
-        frame_idx = random.randint(0, NUM_FRAMES - 1)
-        frame = self.frames[frame_idx]
+        # Sample a property
+        colour_cnt = sum(q_cnts["colour"].values())
+        rot_cnt = sum(q_cnts["rotation"].values())
 
-        # Find obj for question
-        obj = self._find_unique_obj(frame)
+        # Weights are cnt for opposite prop
+        prop = random.choices(["colour", "rotation"], weights=[rot_cnt, colour_cnt], k=1)[0]
+        prop_cnt = sum(q_cnts[prop].values())
 
-        # If this question fails, try another question
-        if obj is None:
-            return None
+        # Sample a property value
+        val_cnts = {val: prop_cnt - cnt for val, cnt in q_cnts[prop]}
+        vals, weights = tuple(zip(*val_cnts.items()))
+        prop_val = random.choices(vals, weights=weights, k=1)[0]
 
-        # If class uniquely identifies obj leave additional identifier blank
-        # Otherwise use value of additional identifier
-        obj, unique_prop = obj
-        obj_str = self._gen_unique_obj_str(obj, unique_prop)
+        qa_pair = None
 
-        # Get the property value (the answer)
-        props = QUESTION_OBJ_PROPS[:]
-        if unique_prop != "class":
-            props.remove(unique_prop)
+        frame_idxs = range(NUM_FRAMES)
+        random.shuffle(frame_idxs)
+        for frame_idx in frame_idxs:
+            if qa_pair is not None:
+                break
 
-        idx = random.randint(0, len(props) - 1)
-        prop = props[idx]
-        prop_val = obj.get_prop_val(prop)
+            frame = video.frames[frame_idx]
+            unique_objs = self._find_unique_objs(frame)
+            random.shuffle(unique_objs)
 
-        # Use external prop val
-        if prop == "rotation":
-            prop_val = util.format_rotation_value(prop_val)
+            for obj, obj_str in unique_objs:
+                if obj.get_prop_val(prop) == prop_val:
+                    question = f"What {prop} was the {obj_str} in frame {str(frame_idx)}?"
+                    answer = util.format_rotation_value(prop_val) if prop == "rotation" else str(prop_val)
+                    if question not in video.questions:
+                        qa_pair = question, answer
+                        break
 
-        question = f"What {prop} was the {obj_str} in frame {str(frame_idx)}?"
-        answer = str(prop_val)
-
-        return question, answer
+        return qa_pair
 
     def _gen_relations_question(self):
         """
