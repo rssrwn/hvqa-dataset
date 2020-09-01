@@ -112,6 +112,9 @@ class OceanQADataset:
                         qa_pair = question, answer
                         break
 
+        if qa_pair is not None:
+            q_cnts[prop][prop_val] += 1
+
         return qa_pair
 
     def _gen_relations_question(self):
