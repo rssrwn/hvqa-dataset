@@ -28,6 +28,18 @@ class Video:
         video = Video(frames, events)
         return video
 
+    def _add_question(self, question, q_type, answer):
+        self.questions.append(question)
+        self.q_types.append(q_type)
+        self.answers.append(answer)
+
+    def add_if_orig_(self, question, q_type, answer):
+        if question not in self.questions:
+            self._add_question(question, q_type, answer)
+            return True
+
+        return False
+
     def to_dict(self):
         return {
             "frames": [frame.to_dict() for frame in self.frames],

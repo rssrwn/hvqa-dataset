@@ -47,12 +47,16 @@ class OceanQADataset:
             v_idxs = list(range(len(self.videos)))
             random.shuffle(v_idxs)
 
+            q_func, q_type = self._sample_q_func(q_type_cnts)
+
             for v_idx in v_idxs:
                 video = self.videos[v_idx]
-                q_func = self._sample_q_func(q_type_cnts)
                 qa_pair = q_func(video)
                 if qa_pair is not None:
-                    break
+                    question, answer = qa_pair
+                    if video.add_if_orig_(question, q_type, answer):
+                        q_type_cnts[q_type] += 1
+                        break
 
         # dedup_qs = set()
         # dedup_idxs = []
@@ -72,7 +76,7 @@ class OceanQADataset:
         q_types, weights = tuple(zip(*weight_dict.items()))
         q_type = random.choices(q_types, weights=weights, k=1)[0]
         q_func = self._question_funcs[q_type]
-        return q_func
+        return q_func, q_type
 
     def _gen_prop_question(self):
         """
