@@ -4,33 +4,16 @@ import shutil
 from PIL import Image
 from pathlib import Path
 
-from hvqadata.video.video import Video
+from hvqadata.video.dataset import OceanQADataset
 from hvqadata.draw import Drawer
 
 
 def write_json(out_dir, num_videos):
     print("Writing json to file...")
 
-    num_videos_written = 0
-    for video_num in range(num_videos):
-        # Create video
-        video_builder = Video()
-        video_builder.random_video()
-        video = video_builder.to_dict()
-
-        # Write text to file
-        text = json.dumps(video)
-        video_dir = Path(f"./{out_dir}/{video_num}")
-        if not video_dir.exists():
-            video_dir.mkdir(parents=True, exist_ok=False)
-
-        file = open(f"./{out_dir}/{video_num}/video.json", "w")
-        file.write(text)
-        file.close()
-
-        num_videos_written += 1
-
-    print(f"Successfully written {num_videos_written} json files")
+    # Create json videos
+    videos = OceanQADataset.random_videos(num_videos)
+    videos.write(out_dir)
 
 
 def create_videos(out_dir):

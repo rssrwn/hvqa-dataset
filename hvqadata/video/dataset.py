@@ -1,4 +1,6 @@
+import json
 import random
+from pathlib import Path
 
 import hvqadata.util.func as util
 from hvqadata.video.video import Video
@@ -27,12 +29,13 @@ class OceanQADataset:
         self.videos = videos
 
     @staticmethod
-    def random_videos(num_videos):
+    def random_videos(num_videos, qs_attempts=None, min_questions=2):
         videos = [Video.random_video() for _ in range(num_videos)]
         dataset = OceanQADataset(videos)
+        dataset._gen_qa_pairs(qs_attempts=qs_attempts, min_questions=min_questions)
         return dataset
 
-    def gen_qa_pairs(self, qs_attempts=None):
+    def _gen_qa_pairs(self, qs_attempts=None, min_questions=2):
         qs_attempts = len(self.videos) * 10 if qs_attempts is None else qs_attempts
 
         q_type_cnts = {q_type: 0 for q_type in range(len(self._question_funcs))}
@@ -62,9 +65,31 @@ class OceanQADataset:
                     q_type_cnts[q_type] += 1
                     break
 
-        # Shuffle all questions in each video
+        # Shuffle all questions in each video and remove any video with less than 2 questions
+        new_videos = []
         for video in self.videos:
-            video.shuffle_questions_()
+            if len(video.questions) >= min_questions:
+                video.shuffle_questions_()
+                new_videos.append(video)
+
+        self.videos = new_videos
+
+    def write(self, out_dir):
+        num_videos_written = 0
+        for video_num, video in enumerate(self.videos):
+            # Write text to file
+            text = json.dumps(video.to_dict())
+            video_dir = Path(f"./{out_dir}/{video_num}")
+            if not video_dir.exists():
+                video_dir.mkdir(parents=True, exist_ok=False)
+
+            file = open(f"./{out_dir}/{video_num}/video.json", "w")
+            file.write(text)
+            file.close()
+
+            num_videos_written += 1
+
+        print(f"Successfully written {num_videos_written} json files")
 
     def _sample_q_func(self, q_type_cnts):
         total = sum(q_type_cnts.values())
