@@ -44,10 +44,12 @@ class OceanQADataset:
                 "colour": {col: 0 for col in COLOURS},
                 "rotation": {rot: 0 for rot in ROTATIONS}
             },
-            1: {
-                rel: {"yes": 0, "no": 0} for rel, _ in self._relations.items()
-            },
-            2: {action: 0 for action in ACTIONS}
+            1: {rel: {"yes": 0, "no": 0} for rel, _ in self._relations.items()},
+            2: {action: 0 for action in ACTIONS},
+            3: {
+                "colour": {col: 0 for col in COLOURS},
+                "rotation": {rot: 0 for rot in ROTATIONS}
+            }
         }
 
         for _ in range(qs_attempts):
@@ -160,7 +162,8 @@ class OceanQADataset:
         :return: (question: str, answer: str)
         """
 
-        rels_cnts = {rel: sum(cnts.values()) for rel, cnts in q_cnts.items()}
+        total = sum([sum(cnts.values()) for _, cnts in q_cnts.items()])
+        rels_cnts = {rel: total - sum(cnts.values()) for rel, cnts in q_cnts.items()}
         rels, weights = tuple(zip(*rels_cnts.items()))
         rel = random.choices(rels, weights=weights, k=1)[0]
 
@@ -225,7 +228,7 @@ class OceanQADataset:
 
         return qa_pair
 
-    def _gen_prop_changed_question(self):
+    def _gen_prop_changed_question(self, video, q_cnts):
         """
         Generate a question about which property of an object changed (and what it changed to)
         Note: The object will always be an octopus
