@@ -23,15 +23,15 @@ class Video:
 
         curr = initial
         for frame in range(1, NUM_FRAMES):
-            curr, events = curr.move()
+            curr, events_ = curr.move()
             frames.append(curr)
-            events.append(events)
+            events.append(events_)
 
         video = Video(frames, events)
         return video
 
     def shuffle_questions_(self):
-        q_idxs = range(len(self.questions))
+        q_idxs = list(range(len(self.questions)))
         random.shuffle(q_idxs)
         self.questions = [self.questions[q_idx] for q_idx in q_idxs]
         self.answers = [self.answers[q_idx] for q_idx in q_idxs]

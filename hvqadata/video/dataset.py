@@ -14,12 +14,12 @@ class OceanQADataset:
             self._gen_prop_question,
             self._gen_relations_question,
             self._gen_action_question,
-            self._gen_prop_changed_question,
-            self._gen_repetition_count_question,
-            self._gen_repeating_action_question,
-            self._gen_state_transition_question,
-            self._gen_explanation_question,
-            self._gen_counterfactual_question
+            # self._gen_prop_changed_question,
+            # self._gen_repetition_count_question,
+            # self._gen_repeating_action_question,
+            # self._gen_state_transition_question,
+            # self._gen_explanation_question,
+            # self._gen_counterfactual_question
         ]
         self._relations = {
             "close to": util.close_to,
@@ -74,6 +74,11 @@ class OceanQADataset:
 
         self.videos = new_videos
 
+        num_videos = len(self.videos)
+        avg_qs = sum([len(video.questions) for video in self.videos]) / num_videos
+        print(f"Kept {num_videos} videos in dataset...")
+        print(f"With an average of {avg_qs:.2f} questions per video.")
+
     def write(self, out_dir):
         num_videos_written = 0
         for video_num, video in enumerate(self.videos):
@@ -93,7 +98,7 @@ class OceanQADataset:
 
     def _sample_q_func(self, q_type_cnts):
         total = sum(q_type_cnts.values())
-        weight_dict = {q_type: total - cnt for q_type, cnt in q_type_cnts}
+        weight_dict = {q_type: total - cnt for q_type, cnt in q_type_cnts.items()}
         q_types, weights = tuple(zip(*weight_dict.items()))
         q_type = random.choices(q_types, weights=weights, k=1)[0]
         q_func = self._question_funcs[q_type]
@@ -117,13 +122,13 @@ class OceanQADataset:
         prop_cnt = sum(q_cnts[prop].values())
 
         # Sample a property value
-        val_cnts = {val: prop_cnt - cnt for val, cnt in q_cnts[prop]}
+        val_cnts = {val: prop_cnt - cnt for val, cnt in q_cnts[prop].items()}
         vals, weights = tuple(zip(*val_cnts.items()))
         prop_val = random.choices(vals, weights=weights, k=1)[0]
 
         qa_pair = None
 
-        frame_idxs = range(NUM_FRAMES)
+        frame_idxs = list(range(NUM_FRAMES))
         random.shuffle(frame_idxs)
         for frame_idx in frame_idxs:
             if qa_pair is not None:
@@ -155,12 +160,12 @@ class OceanQADataset:
         :return: (question: str, answer: str)
         """
 
-        rels_cnts = {rel: sum(cnts.values()) for rel, cnts in q_cnts}
+        rels_cnts = {rel: sum(cnts.values()) for rel, cnts in q_cnts.items()}
         rels, weights = tuple(zip(*rels_cnts.items()))
         rel = random.choices(rels, weights=weights, k=1)[0]
 
         rel_total = rels_cnts[rel]
-        rel_cnts = {ans: rel_total - cnt for ans, cnt in q_cnts[rel]}
+        rel_cnts = {ans: rel_total - cnt for ans, cnt in q_cnts[rel].items()}
         answers, weights = tuple(zip(*rel_cnts.items()))
         answer = random.choices(answers, weights=weights, k=1)[0]
 
@@ -198,7 +203,7 @@ class OceanQADataset:
         """
 
         total = sum(q_cnts.values())
-        action_cnts = {action: total - cnt for action, cnt in q_cnts}
+        action_cnts = {action: total - cnt for action, cnt in q_cnts.items()}
         actions, weights = tuple(zip(*action_cnts.items()))
         answer = random.choices(actions, weights=weights, k=1)[0]
 
