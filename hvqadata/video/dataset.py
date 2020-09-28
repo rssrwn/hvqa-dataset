@@ -55,7 +55,11 @@ class OceanQADataset:
                 "rotation": {rot: 0 for rot in ROTATIONS}
             },
             5: {event: 0 for event in ACTIONS[:] + EFFECTS},
-            6: {event: 0 for event in ACTIONS[:] + EFFECTS}
+            6: {event: 0 for event in ACTIONS[:] + EFFECTS},
+            7: {
+                event: {action: 0 for action in ACTIONS}
+                for event in [ROTATE_LEFT_EVENT, ROTATE_RIGHT_EVENT, EAT_FISH_EVENT, "change colour"]
+            }
         }
 
         for _ in range(qs_attempts):
@@ -105,7 +109,7 @@ class OceanQADataset:
         print(f"Successfully written {num_videos_written} json files")
 
     def _sample_q_func(self, q_type_cnts):
-        q_type, _ = self._sample_from_2_layer_dict(q_type_cnts)
+        q_type = self._sample_from_2_layer_dict(q_type_cnts)
         q_func = self._question_funcs[q_type]
         return q_func, q_type
 
@@ -123,7 +127,7 @@ class OceanQADataset:
         weight_dict = {prop: total - sum(cnts_.values()) for prop, cnts_ in cnts.items()}
         items, weights = tuple(zip(*weight_dict.items()))
         item = random.choices(items, weights=weights, k=1)[0]
-        return item, weight_dict
+        return item
 
     def _gen_prop_question(self, video, q_cnts):
         """
@@ -181,7 +185,7 @@ class OceanQADataset:
         :return: (question: str, answer: str)
         """
 
-        rel, rels_cnts = self._sample_from_2_layer_dict(q_cnts)
+        rel = self._sample_from_2_layer_dict(q_cnts)
         answer = self._sample_from_dict(q_cnts[rel])
 
         rel_func = self._relations[rel]
@@ -246,7 +250,7 @@ class OceanQADataset:
         :return: (question: str, answer: str)
         """
 
-        prop, prop_cnts = self._sample_from_2_layer_dict(q_cnts)
+        prop = self._sample_from_2_layer_dict(q_cnts)
         prop_val = self._sample_from_dict(q_cnts[prop])
 
         obj = video.frames[0].octopus
@@ -349,7 +353,7 @@ class OceanQADataset:
 
         return qa_pair
 
-    def _gen_state_transition_question(self):
+    def _gen_state_transition_question(self, video, q_cnts):
         """
         Generate a question about what the octopus does after something happens
         Q: What does the octopus do immediately after <event (preposition tense)> [for the <nth> time]?
@@ -358,62 +362,36 @@ class OceanQADataset:
         :return: (question: str, answer: str)
         """
 
-        event_idxs = self._event_frame_idxs()
+        event = self._sample_from_2_layer_dict(q_cnts)
+        answer = self._sample_from_dict(q_cnts[event])
 
-        # We don't care about frames that we know the octopus is not in
-        if event_idxs.get(NO_EVENT) is not None:
-            del event_idxs[NO_EVENT]
-        if event_idxs.get(EAT_BAG_EVENT) is not None:
-            del event_idxs[EAT_BAG_EVENT]
-
-        # Move events are likely to be difficult to express succinctly
-        if event_idxs.get(MOVE_EVENT) is not None:
-            del event_idxs[MOVE_EVENT]
-
-        # Remove events which we can't make a question out of
-        for event, idxs in event_idxs.items():
-            idxs = [idx for idx in idxs if idx < NUM_FRAMES - 2]
-            idxs = [idx for idx in idxs if NO_EVENT not in set(self.events[idx + 1])]
-            event_idxs[event] = idxs
-
-        events = list(event_idxs.keys())
-        random.shuffle(events)
-
-        question_event = None
-        nth = None
-        is_single_occ = False
-        frame_idx = None
-
-        for event in events:
-            idxs = event_idxs[event]
-            if len(idxs) > MAX_OCCURRENCE:
-                idxs = idxs[:MAX_OCCURRENCE]
-
-            if len(idxs) > 0:
-                idx = random.randint(0, len(idxs) - 1)
-                nth, frame_idx = list(enumerate(idxs))[idx]
-                question_event = event
-                if len(idxs) == 1:
-                    is_single_occ = True
-                break
-
-        if question_event is None:
+        event_idxs = self._event_frame_idxs(video)
+        frame_idxs = event_idxs[event]
+        if len(frame_idxs) == 0:
             return None
 
-        # Find next action (answer)
-        actions = self.events[frame_idx + 1]
-        actions = [action for action in actions if action in ACTIONS]
+        usable_events = []
 
-        assert len(actions) == 1, f"Multiple (or no) actions in a single frame: {actions}"
+        for event_idx, frame_idx in enumerate(frame_idxs):
+            if event_idx < MAX_OCCURRENCE and answer in video.events[frame_idx]:
+                usable_events.append(event_idx)
 
-        action = actions[0]
+        if len(usable_events) == 0:
+            return None
 
-        event_noun = EVENTS_TO_NOUN[question_event]
+        random.shuffle(usable_events)
+        nth = usable_events[0]
+        event_noun = EVENTS_TO_NOUN[event]
+        is_single_occ = len(frame_idxs) == 1
         occurrence_str = self._format_occ_str(nth + 1, is_single_occ)
         question = f"What does the octopus do immediately after {event_noun}{occurrence_str}?"
-        answer = action
+        if question in video.questions:
+            return None
 
-        return question, answer
+        qa_pair = question, answer
+        q_cnts[event][answer] += 1
+
+        return qa_pair
 
     def _gen_explanation_question(self):
         """
@@ -559,9 +537,10 @@ class OceanQADataset:
 
         return rels, frame_idx
 
-    def _event_frame_idxs(self):
+    @staticmethod
+    def _event_frame_idxs(video):
         idxs = {event: [] for event in EVENTS}
-        for idx, events in enumerate(self.events):
+        for idx, events in enumerate(video.events):
             for event in events:
                 if event[:CHANGE_COLOUR_LENGTH] == "change colour":
                     event = "change colour"
