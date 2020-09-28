@@ -53,7 +53,8 @@ class OceanQADataset:
             4: {
                 "colour": {col: 0 for col in [OCTO_COLOUR] + ROCK_COLOURS},
                 "rotation": {rot: 0 for rot in ROTATIONS}
-            }
+            },
+            5: {event: 0 for event in ACTIONS[:] + EFFECTS}
         }
 
         for _ in range(qs_attempts):
@@ -288,36 +289,36 @@ class OceanQADataset:
 
         return qa_pair
 
-    def _gen_repetition_count_question(self):
+    def _gen_repetition_count_question(self, video, q_cnts):
         """
         Generate a question asking about the number of times something (action or indirect effect) happened
-        Q: How many times does the <object> <event>?
+        Q: How many times does the octopus <event>?
         A: <Non-negative Integer>
-        Note: The object will always be the octopus
 
         :return: (question: str, answer: str)
         """
 
-        event_counts = self._count_events()
-        if event_counts.get(NO_EVENT) is not None:
-            del event_counts[NO_EVENT]
+        event = self._sample_from_dict(q_cnts)
 
-        events = list(event_counts.keys())
-        idx = random.randint(0, len(events) - 1)
-        event = events[idx]
-        count = event_counts[event]
+        event_counts = self._count_events(video)
+        if event_counts[event] == 0:
+            return None
 
         question = f"How many times does the octopus {event}?"
-        answer = str(count)
+        if question in video.questions:
+            return None
 
-        return question, answer
+        answer = str(event_counts[event])
+        qa_pair = question, answer
+        q_cnts[event] += 1
+
+        return qa_pair
 
     def _gen_repeating_action_question(self):
         """
         Generate a question asking about which event occurs a given number of times
-        Q: What does the <object> do <n> times?
+        Q: What does the octopus do <n> times?
         A: <event>
-        Note: The object will always be the octopus
 
         :return: (question: str, answer: str)
         """
@@ -355,9 +356,8 @@ class OceanQADataset:
     def _gen_state_transition_question(self):
         """
         Generate a question about what the octopus does after something happens
-        Q: What does the <object> do immediately after <event (preposition tense)> [for the <nth> time]?
+        Q: What does the octopus do immediately after <event (preposition tense)> [for the <nth> time]?
         A: move/rotate left/rotate right
-        Note: The object is always the octopus
 
         :return: (question: str, answer: str)
         """
@@ -574,9 +574,10 @@ class OceanQADataset:
 
         return idxs
 
-    def _count_events(self):
+    @staticmethod
+    def _count_events(video):
         counts = {event: 0 for event in EVENTS}
-        for events in self.events:
+        for events in video.events:
             for event in events:
                 if event[:CHANGE_COLOUR_LENGTH] == "change colour":
                     event = "change colour"
