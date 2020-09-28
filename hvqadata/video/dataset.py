@@ -54,7 +54,8 @@ class OceanQADataset:
                 "colour": {col: 0 for col in [OCTO_COLOUR] + ROCK_COLOURS},
                 "rotation": {rot: 0 for rot in ROTATIONS}
             },
-            5: {event: 0 for event in ACTIONS[:] + EFFECTS}
+            5: {event: 0 for event in ACTIONS[:] + EFFECTS},
+            6: {event: 0 for event in ACTIONS[:] + EFFECTS}
         }
 
         for _ in range(qs_attempts):
@@ -314,7 +315,7 @@ class OceanQADataset:
 
         return qa_pair
 
-    def _gen_repeating_action_question(self):
+    def _gen_repeating_action_question(self, video, q_cnts):
         """
         Generate a question asking about which event occurs a given number of times
         Q: What does the octopus do <n> times?
@@ -323,35 +324,30 @@ class OceanQADataset:
         :return: (question: str, answer: str)
         """
 
-        event_counts = self._count_events()
-        if event_counts.get(NO_EVENT) is not None:
-            del event_counts[NO_EVENT]
+        event = self._sample_from_dict(q_cnts)
 
-        events = list(event_counts.keys())
-        random.shuffle(events)
+        event_counts = self._count_events(video)
+        if event_counts[event] == 0:
+            return None
 
         # Track the number of times each count occurs
         counts = {}
         for _, count in event_counts.items():
             util.increment_in_map_(counts, count)
 
-        question_count = None
-        question_event = None
-
-        for event in events:
-            count = event_counts[event]
-            num_counts = counts[count]
-            if count != 0 and num_counts == 1:
-                question_count = count
-                question_event = event
-
-        if question_count is None:
+        # Ensure the count is unique
+        question_cnt = event_counts[event]
+        if counts[question_cnt] > 1:
             return None
 
-        question = f"What does the octopus do {question_count} times?"
-        answer = question_event
+        question = f"What does the octopus do {question_cnt} times?"
+        if question in video.questions:
+            return None
 
-        return question, answer
+        qa_pair = question, event
+        q_cnts[event] += 1
+
+        return qa_pair
 
     def _gen_state_transition_question(self):
         """
