@@ -59,7 +59,8 @@ class OceanQADataset:
             7: {
                 event: {action: 0 for action in ACTIONS}
                 for event in [ROTATE_LEFT_EVENT, ROTATE_RIGHT_EVENT, EAT_FISH_EVENT, "change colour"]
-            }
+            },
+            8: {answer: 0 for answer in ["The octopus ate a bag", "The bag was eaten", "The fish was eaten"]}
         }
 
         for _ in range(qs_attempts):
@@ -393,7 +394,7 @@ class OceanQADataset:
 
         return qa_pair
 
-    def _gen_explanation_question(self):
+    def _gen_explanation_question(self, video, q_cnts):
         """
         Generate a question asking why something happened
         Q: Why did the <rotation> object disappear?
@@ -402,13 +403,14 @@ class OceanQADataset:
         :return: (question: str, answer: str)
         """
 
-        # Find disappeared objs
-        disappear = self._find_disappear_objs(self.frames)
-        disappear = [obj for obj, _ in disappear]
-        random.shuffle(disappear)
+        answer = self._sample_from_dict(q_cnts)
 
-        # Find an obj with a unique rotation within the disappeared list
-        unique_obj = None
+        # Find disappeared objs
+        disappear = self._find_disappear_objs(video.frames)
+        disappear = [obj for obj, _ in disappear]
+
+        # Find objs with a unique rotation within the disappeared list
+        unique_objs = []
         for obj1 in disappear:
             unique = True
             for obj2 in disappear:
@@ -416,22 +418,28 @@ class OceanQADataset:
                     unique = False
 
             if unique:
-                unique_obj = obj1
+                unique_objs.append(obj1)
 
-        if unique_obj is None:
+        if len(unique_objs) == 0:
             return None
 
-        rot = util.format_rotation_value(unique_obj.rotation)
-        question = f"Why did the {rot} object disappear?"
+        question_obj = None
 
-        if unique_obj.obj_type == "octopus":
-            answer = "The octopus ate a bag"
-        elif unique_obj.obj_type == "bag":
-            answer = "The bag was eaten"
-        elif unique_obj.obj_type == "fish":
-            answer = "The fish was eaten"
-        else:
-            raise UnknownObjectTypeException(f"Object type {unique_obj.obj_type} cannot disappear")
+        random.shuffle(unique_objs)
+        for obj in unique_objs:
+            if (answer == "The octopus ate a bag" and obj.obj_type == "octopus")\
+                    or (answer == "The bag was eaten" and obj.obj_type == "bag")\
+                    or (answer == "The fish was eaten" and obj.obj_type == "fish"):
+                question_obj = obj
+                break
+
+        if question_obj is None:
+            return None
+
+        rot = util.format_rotation_value(question_obj.rotation)
+        question = f"Why did the {rot} object disappear?"
+        if question in video.questions:
+            return None
 
         return question, answer
 
