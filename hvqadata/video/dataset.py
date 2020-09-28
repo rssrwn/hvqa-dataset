@@ -49,6 +49,10 @@ class OceanQADataset:
             3: {
                 "colour": {col: 0 for col in COLOURS},
                 "rotation": {rot: 0 for rot in ROTATIONS}
+            },
+            4: {
+                "colour": {col: 0 for col in [OCTO_COLOUR] + ROCK_COLOURS},
+                "rotation": {rot: 0 for rot in ROTATIONS}
             }
         }
 
@@ -99,12 +103,25 @@ class OceanQADataset:
         print(f"Successfully written {num_videos_written} json files")
 
     def _sample_q_func(self, q_type_cnts):
-        total = sum(q_type_cnts.values())
-        weight_dict = {q_type: total - cnt for q_type, cnt in q_type_cnts.items()}
-        q_types, weights = tuple(zip(*weight_dict.items()))
-        q_type = random.choices(q_types, weights=weights, k=1)[0]
+        q_type, _ = self._sample_from_2_layer_dict(q_type_cnts)
         q_func = self._question_funcs[q_type]
         return q_func, q_type
+
+    @staticmethod
+    def _sample_from_dict(cnts):
+        total = sum(cnts.values())
+        item_weights = {item: total - cnt for item, cnt in cnts.items()}
+        items, weights = tuple(zip(*item_weights.items()))
+        item = random.choices(items, weights=weights, k=1)[0]
+        return item
+
+    @staticmethod
+    def _sample_from_2_layer_dict(cnts):
+        total = sum([sum(cnts_.values()) for _, cnts_ in cnts.items()])
+        weight_dict = {prop: total - sum(cnts_.values()) for prop, cnts_ in cnts.items()}
+        items, weights = tuple(zip(*weight_dict.items()))
+        item = random.choices(items, weights=weights, k=1)[0]
+        return item, weight_dict
 
     def _gen_prop_question(self, video, q_cnts):
         """
@@ -162,15 +179,8 @@ class OceanQADataset:
         :return: (question: str, answer: str)
         """
 
-        total = sum([sum(cnts.values()) for _, cnts in q_cnts.items()])
-        rels_cnts = {rel: total - sum(cnts.values()) for rel, cnts in q_cnts.items()}
-        rels, weights = tuple(zip(*rels_cnts.items()))
-        rel = random.choices(rels, weights=weights, k=1)[0]
-
-        rel_total = rels_cnts[rel]
-        rel_cnts = {ans: rel_total - cnt for ans, cnt in q_cnts[rel].items()}
-        answers, weights = tuple(zip(*rel_cnts.items()))
-        answer = random.choices(answers, weights=weights, k=1)[0]
+        rel, rels_cnts = self._sample_from_2_layer_dict(q_cnts)
+        answer = self._sample_from_dict(q_cnts[rel])
 
         rel_func = self._relations[rel]
         is_yes = answer == "yes"
@@ -205,10 +215,7 @@ class OceanQADataset:
         :return: (question: str, answer: str)
         """
 
-        total = sum(q_cnts.values())
-        action_cnts = {action: total - cnt for action, cnt in q_cnts.items()}
-        actions, weights = tuple(zip(*action_cnts.items()))
-        answer = random.choices(actions, weights=weights, k=1)[0]
+        answer = self._sample_from_dict(q_cnts)
 
         frame_idxs = [idx for idx, events in enumerate(video.events) if answer in events]
         if len(frame_idxs) == 0:
@@ -231,14 +238,16 @@ class OceanQADataset:
     def _gen_prop_changed_question(self, video, q_cnts):
         """
         Generate a question about which property of an object changed (and what it changed to)
-        Note: The object will always be an octopus
-        Q: What happened to the <object> immediately after <frame_idx>?
+        Q: What happened to the octopus immediately after <frame_idx>?
         A: Its rotation/colour changed from <property value> to <property value>
 
         :return: (question: str, answer: str)
         """
 
-        obj = self.frames[0].octopus
+        prop, prop_cnts = self._sample_from_2_layer_dict(q_cnts)
+        prop_val = self._sample_from_dict(q_cnts[prop])
+
+        obj = video.frames[0].octopus
         obj_str = self._gen_unique_obj_str(obj, "class")
         colour = obj.colour
         rotation = obj.rotation
@@ -246,7 +255,7 @@ class OceanQADataset:
         deltas = {"colour": [], "rotation": []}
 
         # Generate possible property changes to sample from
-        for idx, frame in enumerate(self.frames[1:]):
+        for idx, frame in enumerate(video.frames[1:]):
             if frame.octopus is not None:
                 obj = frame.octopus
                 if obj.colour != colour:
