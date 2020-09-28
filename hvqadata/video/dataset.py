@@ -252,46 +252,41 @@ class OceanQADataset:
         colour = obj.colour
         rotation = obj.rotation
 
-        deltas = {"colour": [], "rotation": []}
+        deltas = []
 
-        # Generate possible property changes to sample from
+        # Generate possible property changes to choose from
         for idx, frame in enumerate(video.frames[1:]):
             if frame.octopus is not None:
                 obj = frame.octopus
-                if obj.colour != colour:
+                if prop == "colour" and obj.colour != colour and colour == prop_val:
                     util.append_in_dict_(deltas, "colour", (idx, colour, obj.colour))
                     colour = obj.colour
 
-                if obj.rotation != rotation:
+                if prop == "rotation" and obj.rotation != rotation and rotation == prop_val:
                     util.append_in_dict_(deltas, "rotation", (idx, rotation, obj.rotation))
                     rotation = obj.rotation
 
-        props = list(deltas.keys())
-        random.shuffle(props)
-
-        prop = None
-        delta = None
-
-        # Try to sample question from each property in random order
-        for prop_ in props:
-            prop_deltas = deltas[prop_]
-            if len(prop_deltas) != 0:
-                idx = random.randint(0, len(prop_deltas) - 1)
-                delta = prop_deltas[idx]
-                prop = prop_
-
-        if delta is None:
+        if len(deltas) == 0:
             return None
 
-        frame_idx, old_val, new_val = delta
-        if prop == "rotation":
-            old_val = util.format_rotation_value(old_val)
-            new_val = util.format_rotation_value(new_val)
+        random.shuffle(deltas)
+        qa_pair = None
 
-        question = f"What happened to the {obj_str} immediately after frame {frame_idx}?"
-        answer = f"Its {prop} changed from {old_val} to {new_val}"
+        for delta in deltas:
+            frame_idx, old_val, new_val = delta
+            if prop == "rotation":
+                old_val = util.format_rotation_value(old_val)
+                new_val = util.format_rotation_value(new_val)
 
-        return question, answer
+            question = f"What happened to the {obj_str} immediately after frame {frame_idx}?"
+            answer = f"Its {prop} changed from {old_val} to {new_val}"
+            if question not in video.questions:
+                qa_pair = question, answer
+
+        if qa_pair is not None:
+            q_cnts[prop][prop_val] += 1
+
+        return qa_pair
 
     def _gen_repetition_count_question(self):
         """
