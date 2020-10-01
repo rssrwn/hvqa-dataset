@@ -4,7 +4,6 @@ from pathlib import Path
 
 import hvqadata.util.func as util
 from hvqadata.video.video import Video
-from hvqadata.util.exceptions import UnknownObjectTypeException
 from hvqadata.util.definitions import *
 
 
@@ -60,7 +59,8 @@ class OceanQADataset:
                 event: {action: 0 for action in ACTIONS}
                 for event in [ROTATE_LEFT_EVENT, ROTATE_RIGHT_EVENT, EAT_FISH_EVENT, "change colour"]
             },
-            8: {answer: 0 for answer in ["The octopus ate a bag", "The bag was eaten", "The fish was eaten"]}
+            8: {answer: 0 for answer in ["The octopus ate a bag", "The bag was eaten", "The fish was eaten"]},
+            9: {answer: 0 for answer in [OCTO_COLOUR] + ROCK_COLOURS}
         }
 
         for _ in range(qs_attempts):
@@ -443,7 +443,7 @@ class OceanQADataset:
 
         return question, answer
 
-    def _gen_counterfactual_question(self):
+    def _gen_counterfactual_question(self, video, q_cnts):
         """
         Generate a question asking what the state would be like if an object was not there
         Q: What colour would the octopus be in its final frame without the <colour> rock?
@@ -452,7 +452,9 @@ class OceanQADataset:
         :return: (question: str, answer: str)
         """
 
-        unique_objs = self._find_unique_objs(self.frames[0])
+        answer = self._sample_from_dict(q_cnts)
+
+        unique_objs = self._find_unique_objs(video.frames[0])
         unique_rocks = [obj for obj, _ in unique_objs if obj.obj_type == "rock"]
         unique_colours = [rock.colour for rock in unique_rocks]
         random.shuffle(unique_colours)
@@ -461,35 +463,27 @@ class OceanQADataset:
         if len(unique_rocks) == 0:
             return None
 
-        colour_changes = self._find_colour_changes(self.frames)
-        idxs = list(range(len(colour_changes)))
-        random.shuffle(idxs)
+        question = None
 
-        if len(colour_changes) == 0:
-            return None
+        for rock_colour in unique_colours:
+            check_q = self._check_counterfactual_answer(video, rock_colour, answer)
+            qs = f"What colour would the octopus be in its final frame without the {rock_colour} rock?"
+            if check_q and qs not in video.questions:
+                question = qs
+                break
 
-        colour = None
-        answer = None
+        qa_pair = question, answer
+        q_cnts[answer] += 1
 
-        # Since unique rocks have unique colour, we know which rock caused these (if colour in unique list)
-        for idx in idxs:
-            col_from, col_to = colour_changes[idx]
-            if col_to in unique_colours:
-                updated_col_changes = [col_to_ for _, col_to_ in colour_changes if col_to_ != col_to]
-                colour = col_to
-                if len(updated_col_changes) == 0:
-                    answer = self.frames[0].octopus.colour
-                else:
-                    answer = updated_col_changes[-1]
+        return qa_pair
 
-        # If there are no colour changes (from unique rocks) use the colour of a unique rock
-        if colour is None:
-            colour = unique_colours[0]
-            answer = self.frames[0].octopus.colour
+    def _check_counterfactual_answer(self, video, rock_colour, answer):
+        # Note: We assume the rock with <rock_colour> is unique
 
-        question = f"What colour would the octopus be in its final frame without the {colour} rock?"
-
-        return question, answer
+        colour_changes = self._find_colour_changes(video.frames)
+        colours_wo_rock = [OCTO_COLOUR] + [col_to for _, col_to in colour_changes if col_to != rock_colour]
+        qa_pair_correct = colours_wo_rock[-1] == answer
+        return qa_pair_correct
 
     def _find_colour_changes(self, frames):
         changes = []
