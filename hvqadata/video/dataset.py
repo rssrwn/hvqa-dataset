@@ -35,7 +35,7 @@ class OceanQADataset:
         return dataset
 
     def _gen_qa_pairs(self, qs_attempts=None, min_questions=2):
-        qs_attempts = len(self.videos) * 100 if qs_attempts is None else qs_attempts
+        qs_attempts = len(self.videos) * 4 if qs_attempts is None else qs_attempts
 
         q_type_cnts = {q_type: 0 for q_type in range(len(self._question_funcs))}
         q_dim_cnts = {
@@ -63,23 +63,21 @@ class OceanQADataset:
             9: {answer: 0 for answer in [OCTO_COLOUR] + ROCK_COLOURS}
         }
 
-        for att in range(qs_attempts):
-            # v_idxs = list(range(len(self.videos)))
-            # random.shuffle(v_idxs)
+        for _ in range(qs_attempts):
+            v_idxs = list(range(len(self.videos)))
+            random.shuffle(v_idxs)
 
             q_func, q_type = self._sample_q_func(q_type_cnts)
+            sample = self._sample_from_arb_dict(q_dim_cnts[q_type])
 
-            v_idx = random.randint(0, len(self.videos) - 1)
-
-            # for v_idx in v_idxs:
-
-            video = self.videos[v_idx]
-            qa_pair = q_func(video, q_dim_cnts[q_type])
-            if qa_pair is not None:
-                question, answer = qa_pair
-                video.add_question(question, q_type, answer)
-                q_type_cnts[q_type] += 1
-                # break
+            for v_idx in v_idxs:
+                video = self.videos[v_idx]
+                qa_pair = q_func(video, sample, q_dim_cnts[q_type])
+                if qa_pair is not None:
+                    question, answer = qa_pair
+                    video.add_question(question, q_type, answer)
+                    q_type_cnts[q_type] += 1
+                    break
 
         # Shuffle all questions in each video and remove any video with less than 2 questions
         new_videos = []
@@ -117,6 +115,15 @@ class OceanQADataset:
         q_func = self._question_funcs[q_type]
         return q_func, q_type
 
+    def _sample_from_arb_dict(self, cnts):
+        if type(list(cnts.values())[0]) == dict:
+            result = self._sample_from_2_layer_dict(cnts)
+            result = (result, self._sample_from_dict(cnts[result]))
+        else:
+            result = (self._sample_from_dict(cnts),)
+
+        return result
+
     @staticmethod
     def _sample_from_dict(cnts):
         total = sum(cnts.values())
@@ -141,7 +148,7 @@ class OceanQADataset:
 
         return item
 
-    def _gen_prop_question(self, video, q_cnts):
+    def _gen_prop_question(self, video, sample, q_cnts):
         """
         Generate question asking about a property of an object for a single frame
         Q: What <property> was the <object> in frame <frame_idx>?
@@ -150,15 +157,7 @@ class OceanQADataset:
         :return: (question: str, answer: str)
         """
 
-        # Sample a property
-        colour_cnt = sum(q_cnts["colour"].values())
-        rot_cnt = sum(q_cnts["rotation"].values())
-
-        # Weights are cnt for opposite prop
-        prop = random.choices(["colour", "rotation"], weights=[rot_cnt, colour_cnt], k=1)[0]
-
-        # Sample a property value
-        prop_val = self._sample_from_dict(q_cnts[prop])
+        prop, prop_val = sample
 
         qa_pair = None
 
@@ -185,7 +184,7 @@ class OceanQADataset:
 
         return qa_pair
 
-    def _gen_relations_question(self, video, q_cnts):
+    def _gen_relations_question(self, video, sample, q_cnts):
         """
         Generate question asking about a relation between two objects in a single frame
         Q: Was the <object> <relation> to the <object> in frame <frame idx>?
@@ -194,8 +193,7 @@ class OceanQADataset:
         :return: (question: str, answer: str)
         """
 
-        rel = self._sample_from_2_layer_dict(q_cnts)
-        answer = self._sample_from_dict(q_cnts[rel])
+        rel, answer = sample
 
         rel_func = self._relations[rel]
         is_yes = answer == "yes"
@@ -221,7 +219,7 @@ class OceanQADataset:
 
         return qa_pair
 
-    def _gen_action_question(self, video, q_cnts):
+    def _gen_action_question(self, video, sample, q_cnts):
         """
         Generate a question which asks about which action occurred
         Q: Which action occurred immediately after frame <frame_idx>?
@@ -230,7 +228,7 @@ class OceanQADataset:
         :return: (question: str, answer: str)
         """
 
-        answer = self._sample_from_dict(q_cnts)
+        answer = sample[0]
 
         frame_idxs = [idx for idx, events in enumerate(video.events) if answer in events]
         if len(frame_idxs) == 0:
@@ -250,7 +248,7 @@ class OceanQADataset:
 
         return qa_pair
 
-    def _gen_prop_changed_question(self, video, q_cnts):
+    def _gen_prop_changed_question(self, video, sample, q_cnts):
         """
         Generate a question about which property of an object changed (and what it changed to)
         Q: What happened to the octopus immediately after <frame_idx>?
@@ -259,8 +257,7 @@ class OceanQADataset:
         :return: (question: str, answer: str)
         """
 
-        prop = self._sample_from_2_layer_dict(q_cnts)
-        prop_val = self._sample_from_dict(q_cnts[prop])
+        prop, prop_val = sample
 
         obj = video.frames[0].octopus
         obj_str = self._gen_unique_obj_str(obj, "class")
@@ -301,6 +298,8 @@ class OceanQADataset:
 
         if qa_pair is not None:
             q_cnts[prop][prop_val] += 1
+
+        print(q_cnts[prop])
 
         return qa_pair
 
