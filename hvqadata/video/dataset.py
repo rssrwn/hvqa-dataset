@@ -14,11 +14,11 @@ class OceanQADataset:
             self._gen_relations_question,
             self._gen_action_question,
             self._gen_prop_changed_question,
-            # self._gen_repetition_count_question,
-            # self._gen_repeating_action_question,
-            # self._gen_state_transition_question,
-            # self._gen_explanation_question,
-            # self._gen_counterfactual_question
+            self._gen_repetition_count_question,
+            self._gen_repeating_action_question,
+            self._gen_state_transition_question,
+            self._gen_explanation_question,
+            self._gen_counterfactual_question
         ]
         self._relations = {
             "close to": util.close_to,
@@ -49,18 +49,14 @@ class OceanQADataset:
                 "colour": {col: 0 for col in ROCK_COLOURS},
                 "rotation": {rot: 0 for rot in ROTATIONS}
             },
-            4: {
-                "colour": {col: 0 for col in [OCTO_COLOUR] + ROCK_COLOURS},
-                "rotation": {rot: 0 for rot in ROTATIONS}
-            },
-            5: {event: 0 for event in ACTIONS[:] + EFFECTS},
-            6: {event: 0 for event in ACTIONS[:] + EFFECTS},
-            7: {
+            4: {event: 0 for event in ACTIONS + EFFECTS},
+            5: {event: 0 for event in ACTIONS + EFFECTS},
+            6: {
                 event: {action: 0 for action in ACTIONS}
                 for event in [ROTATE_LEFT_EVENT, ROTATE_RIGHT_EVENT, EAT_FISH_EVENT, "change colour"]
             },
-            8: {answer: 0 for answer in ["The octopus ate a bag", "The bag was eaten", "The fish was eaten"]},
-            9: {answer: 0 for answer in [OCTO_COLOUR] + ROCK_COLOURS}
+            7: {answer: 0 for answer in ["The octopus ate a bag", "The bag was eaten", "The fish was eaten"]},
+            8: {answer: 0 for answer in [OCTO_COLOUR] + ROCK_COLOURS}
         }
 
         for _ in range(qs_attempts):
@@ -299,11 +295,9 @@ class OceanQADataset:
         if qa_pair is not None:
             q_cnts[prop][prop_val] += 1
 
-        print(q_cnts[prop])
-
         return qa_pair
 
-    def _gen_repetition_count_question(self, video, q_cnts):
+    def _gen_repetition_count_question(self, video, sample, q_cnts):
         """
         Generate a question asking about the number of times something (action or indirect effect) happened
         Q: How many times does the octopus <event>?
@@ -312,7 +306,7 @@ class OceanQADataset:
         :return: (question: str, answer: str)
         """
 
-        event = self._sample_from_dict(q_cnts)
+        event = sample[0]
 
         event_counts = self._count_events(video)
         if event_counts[event] == 0:
@@ -328,7 +322,7 @@ class OceanQADataset:
 
         return qa_pair
 
-    def _gen_repeating_action_question(self, video, q_cnts):
+    def _gen_repeating_action_question(self, video, sample, q_cnts):
         """
         Generate a question asking about which event occurs a given number of times
         Q: What does the octopus do <n> times?
@@ -337,7 +331,7 @@ class OceanQADataset:
         :return: (question: str, answer: str)
         """
 
-        event = self._sample_from_dict(q_cnts)
+        event = sample[0]
 
         event_counts = self._count_events(video)
         if event_counts[event] == 0:
@@ -362,7 +356,7 @@ class OceanQADataset:
 
         return qa_pair
 
-    def _gen_state_transition_question(self, video, q_cnts):
+    def _gen_state_transition_question(self, video, sample, q_cnts):
         """
         Generate a question about what the octopus does after something happens
         Q: What does the octopus do immediately after <event (preposition tense)> [for the <nth> time]?
@@ -371,8 +365,7 @@ class OceanQADataset:
         :return: (question: str, answer: str)
         """
 
-        event = self._sample_from_2_layer_dict(q_cnts)
-        answer = self._sample_from_dict(q_cnts[event])
+        event, answer = sample
 
         event_idxs = self._event_frame_idxs(video)
         frame_idxs = event_idxs[event]
@@ -402,7 +395,7 @@ class OceanQADataset:
 
         return qa_pair
 
-    def _gen_explanation_question(self, video, q_cnts):
+    def _gen_explanation_question(self, video, sample, q_cnts):
         """
         Generate a question asking why something happened
         Q: Why did the <rotation> object disappear?
@@ -411,7 +404,7 @@ class OceanQADataset:
         :return: (question: str, answer: str)
         """
 
-        answer = self._sample_from_dict(q_cnts)
+        answer = sample[0]
 
         # Find disappeared objs
         disappear = self._find_disappear_objs(video.frames)
@@ -451,7 +444,7 @@ class OceanQADataset:
 
         return question, answer
 
-    def _gen_counterfactual_question(self, video, q_cnts):
+    def _gen_counterfactual_question(self, video, sample, q_cnts):
         """
         Generate a question asking what the state would be like if an object was not there
         Q: What colour would the octopus be in its final frame without the <colour> rock?
@@ -460,7 +453,7 @@ class OceanQADataset:
         :return: (question: str, answer: str)
         """
 
-        answer = self._sample_from_dict(q_cnts)
+        answer = sample[0]
 
         unique_objs = self._find_unique_objs(video.frames[0])
         unique_rocks = [obj for obj, _ in unique_objs if obj.obj_type == "rock"]
@@ -480,8 +473,11 @@ class OceanQADataset:
                 question = qs
                 break
 
-        qa_pair = question, answer
-        q_cnts[answer] += 1
+        qa_pair = None
+
+        if question is not None:
+            qa_pair = question, answer
+            q_cnts[answer] += 1
 
         return qa_pair
 
