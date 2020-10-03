@@ -13,7 +13,7 @@ class OceanQADataset:
             self._gen_prop_question,
             self._gen_relations_question,
             self._gen_action_question,
-            # self._gen_prop_changed_question,
+            self._gen_prop_changed_question,
             # self._gen_repetition_count_question,
             # self._gen_repeating_action_question,
             # self._gen_state_transition_question,
@@ -35,7 +35,7 @@ class OceanQADataset:
         return dataset
 
     def _gen_qa_pairs(self, qs_attempts=None, min_questions=2):
-        qs_attempts = len(self.videos) * 10 if qs_attempts is None else qs_attempts
+        qs_attempts = len(self.videos) * 100 if qs_attempts is None else qs_attempts
 
         q_type_cnts = {q_type: 0 for q_type in range(len(self._question_funcs))}
         q_dim_cnts = {
@@ -46,7 +46,7 @@ class OceanQADataset:
             1: {rel: {"yes": 0, "no": 0} for rel, _ in self._relations.items()},
             2: {action: 0 for action in ACTIONS},
             3: {
-                "colour": {col: 0 for col in COLOURS},
+                "colour": {col: 0 for col in ROCK_COLOURS},
                 "rotation": {rot: 0 for rot in ROTATIONS}
             },
             4: {
@@ -63,20 +63,23 @@ class OceanQADataset:
             9: {answer: 0 for answer in [OCTO_COLOUR] + ROCK_COLOURS}
         }
 
-        for _ in range(qs_attempts):
-            v_idxs = list(range(len(self.videos)))
-            random.shuffle(v_idxs)
+        for att in range(qs_attempts):
+            # v_idxs = list(range(len(self.videos)))
+            # random.shuffle(v_idxs)
 
             q_func, q_type = self._sample_q_func(q_type_cnts)
 
-            for v_idx in v_idxs:
-                video = self.videos[v_idx]
-                qa_pair = q_func(video, q_dim_cnts[q_type])
-                if qa_pair is not None:
-                    question, answer = qa_pair
-                    video.add_question(question, q_type, answer)
-                    q_type_cnts[q_type] += 1
-                    break
+            v_idx = random.randint(0, len(self.videos) - 1)
+
+            # for v_idx in v_idxs:
+
+            video = self.videos[v_idx]
+            qa_pair = q_func(video, q_dim_cnts[q_type])
+            if qa_pair is not None:
+                question, answer = qa_pair
+                video.add_question(question, q_type, answer)
+                q_type_cnts[q_type] += 1
+                # break
 
         # Shuffle all questions in each video and remove any video with less than 2 questions
         new_videos = []
@@ -88,9 +91,9 @@ class OceanQADataset:
         self.videos = new_videos
 
         num_videos = len(self.videos)
-        avg_qs = sum([len(video.questions) for video in self.videos]) / num_videos
+        avg = "nan" if num_videos == 0 else f"{sum([len(video.questions) for video in self.videos]) / num_videos:.2f}"
         print(f"Kept {num_videos} videos in dataset...")
-        print(f"With an average of {avg_qs:.2f} questions per video.")
+        print(f"With an average of {avg} questions per video.")
 
     def write(self, out_dir):
         num_videos_written = 0
@@ -110,7 +113,7 @@ class OceanQADataset:
         print(f"Successfully written {num_videos_written} json files")
 
     def _sample_q_func(self, q_type_cnts):
-        q_type = self._sample_from_2_layer_dict(q_type_cnts)
+        q_type = self._sample_from_dict(q_type_cnts)
         q_func = self._question_funcs[q_type]
         return q_func, q_type
 
@@ -119,7 +122,11 @@ class OceanQADataset:
         total = sum(cnts.values())
         item_weights = {item: total - cnt for item, cnt in cnts.items()}
         items, weights = tuple(zip(*item_weights.items()))
-        item = random.choices(items, weights=weights, k=1)[0]
+        if sum(weights) == 0:
+            item = random.choices(items, k=1)[0]
+        else:
+            item = random.choices(items, weights=weights, k=1)[0]
+
         return item
 
     @staticmethod
@@ -127,7 +134,11 @@ class OceanQADataset:
         total = sum([sum(cnts_.values()) for _, cnts_ in cnts.items()])
         weight_dict = {prop: total - sum(cnts_.values()) for prop, cnts_ in cnts.items()}
         items, weights = tuple(zip(*weight_dict.items()))
-        item = random.choices(items, weights=weights, k=1)[0]
+        if sum(weights) == 0:
+            item = random.choices(items, k=1)[0]
+        else:
+            item = random.choices(items, weights=weights, k=1)[0]
+
         return item
 
     def _gen_prop_question(self, video, q_cnts):
@@ -145,12 +156,9 @@ class OceanQADataset:
 
         # Weights are cnt for opposite prop
         prop = random.choices(["colour", "rotation"], weights=[rot_cnt, colour_cnt], k=1)[0]
-        prop_cnt = sum(q_cnts[prop].values())
 
         # Sample a property value
-        val_cnts = {val: prop_cnt - cnt for val, cnt in q_cnts[prop].items()}
-        vals, weights = tuple(zip(*val_cnts.items()))
-        prop_val = random.choices(vals, weights=weights, k=1)[0]
+        prop_val = self._sample_from_dict(q_cnts[prop])
 
         qa_pair = None
 
@@ -265,12 +273,12 @@ class OceanQADataset:
         for idx, frame in enumerate(video.frames[1:]):
             if frame.octopus is not None:
                 obj = frame.octopus
-                if prop == "colour" and obj.colour != colour and colour == prop_val:
-                    util.append_in_dict_(deltas, "colour", (idx, colour, obj.colour))
+                if prop == "colour" and obj.colour != colour and obj.colour == prop_val:
+                    deltas.append((idx, colour, obj.colour))
                     colour = obj.colour
 
-                if prop == "rotation" and obj.rotation != rotation and rotation == prop_val:
-                    util.append_in_dict_(deltas, "rotation", (idx, rotation, obj.rotation))
+                if prop == "rotation" and obj.rotation != rotation and obj.rotation == prop_val:
+                    deltas.append((idx, rotation, obj.rotation))
                     rotation = obj.rotation
 
         if len(deltas) == 0:
@@ -289,6 +297,7 @@ class OceanQADataset:
             answer = f"Its {prop} changed from {old_val} to {new_val}"
             if question not in video.questions:
                 qa_pair = question, answer
+                break
 
         if qa_pair is not None:
             q_cnts[prop][prop_val] += 1
