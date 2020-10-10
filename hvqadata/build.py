@@ -24,6 +24,16 @@ def write_json(out_dir, num_videos):
 
 
 def create_videos(out_dir):
+    train_dir = out_dir + "/train"
+    val_dir = out_dir + "/val"
+    test_dir = out_dir + "/test"
+
+    create_videos_dataset(train_dir)
+    create_videos_dataset(val_dir)
+    create_videos_dataset(test_dir)
+
+
+def create_videos_dataset(out_dir):
     basepath = Path(out_dir)
     video_dirs = basepath.iterdir()
 
