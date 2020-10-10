@@ -191,9 +191,10 @@ class OceanQADataset:
             random.shuffle(unique_objs)
 
             for obj, obj_str in unique_objs:
-                if obj.get_prop_val(prop) == prop_val:
+                unique_prop_val = obj_str.split(" ")[0]
+                answer = util.format_rotation_value(prop_val) if prop == "rotation" else str(prop_val)
+                if obj.get_prop_val(prop) == prop_val and unique_prop_val != answer:
                     question = f"What {prop} was the {obj_str} in frame {str(frame_idx)}?"
-                    answer = util.format_rotation_value(prop_val) if prop == "rotation" else str(prop_val)
                     if question not in video.questions:
                         qa_pair = question, answer
                         break
@@ -293,7 +294,6 @@ class OceanQADataset:
                     deltas.append((idx, colour, obj.colour))
 
                 if prop == "rotation" and obj.rotation != rotation and obj.rotation == prop_val:
-                    print((rotation, obj.rotation))
                     deltas.append((idx, rotation, obj.rotation))
 
                 colour = obj.colour
