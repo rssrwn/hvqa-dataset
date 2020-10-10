@@ -53,8 +53,8 @@ OCCURRENCES = {
 
 EVENTS_TO_NOUN = {
     MOVE_EVENT: "moving",
-    ROTATE_LEFT_EVENT: "rotating left",
-    ROTATE_RIGHT_EVENT: "rotating right",
+    ROTATE_LEFT_EVENT: "rotating anti-clockwise",
+    ROTATE_RIGHT_EVENT: "rotating clockwise",
     EAT_FISH_EVENT: "eating a fish",
     EAT_BAG_EVENT: "eating a bag",
     "change colour": "changing colour"

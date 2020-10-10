@@ -291,11 +291,16 @@ class OceanQADataset:
                 obj = frame.octopus
                 if prop == "colour" and obj.colour != colour and obj.colour == prop_val:
                     deltas.append((idx, colour, obj.colour))
-                    colour = obj.colour
 
                 if prop == "rotation" and obj.rotation != rotation and obj.rotation == prop_val:
+                    print((rotation, obj.rotation))
                     deltas.append((idx, rotation, obj.rotation))
-                    rotation = obj.rotation
+
+                colour = obj.colour
+                rotation = obj.rotation
+
+            else:
+                break
 
         if len(deltas) == 0:
             return None
