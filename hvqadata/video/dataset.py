@@ -373,9 +373,8 @@ class OceanQADataset:
             return None
 
         usable_events = []
-
         for event_idx, frame_idx in enumerate(frame_idxs):
-            if event_idx < MAX_OCCURRENCE and answer in video.events[frame_idx]:
+            if (frame_idx + 2) < NUM_FRAMES and event_idx < MAX_OCCURRENCE and answer in video.events[frame_idx + 1]:
                 usable_events.append(event_idx)
 
         if len(usable_events) == 0:
@@ -441,6 +440,8 @@ class OceanQADataset:
         question = f"Why did the {rot} object disappear?"
         if question in video.questions:
             return None
+
+        q_cnts[answer] += 1
 
         return question, answer
 
