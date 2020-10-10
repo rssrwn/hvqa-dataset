@@ -8,12 +8,19 @@ from hvqadata.video.dataset import OceanQADataset
 from hvqadata.draw import Drawer
 
 
+SPLIT_PERC = 0.2
+
+
 def write_json(out_dir, num_videos):
     print("Writing json to file...")
 
     # Create json videos
     videos = OceanQADataset.random_videos(num_videos)
-    videos.write(out_dir)
+    train, val, test = videos.split(SPLIT_PERC)
+
+    train.write(out_dir + "/train")
+    val.write(out_dir + "/val")
+    test.write(out_dir + "/test")
 
 
 def create_videos(out_dir):

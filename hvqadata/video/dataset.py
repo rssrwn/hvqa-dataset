@@ -89,6 +89,29 @@ class OceanQADataset:
         print(f"Kept {num_videos} videos in dataset...")
         print(f"With an average of {avg} questions per video.")
 
+    def split(self, split_perc):
+        num_videos = len(self.videos)
+        num_val = round(num_videos * split_perc)
+
+        idxs = set(range(num_videos))
+        val_idxs = random.sample(idxs, num_val)
+        random.shuffle(val_idxs)
+        val_videos = [self.videos[idx] for idx in val_idxs]
+        val_dataset = OceanQADataset(val_videos)
+
+        remaining_idxs = idxs - set(val_idxs)
+        test_idxs = random.sample(remaining_idxs, num_val)
+        random.shuffle(test_idxs)
+        test_videos = [self.videos[idx] for idx in test_idxs]
+        test_dataset = OceanQADataset(test_videos)
+
+        train_idxs = remaining_idxs - set(test_idxs)
+        random.shuffle(list(train_idxs))
+        train_videos = [self.videos[idx] for idx in train_idxs]
+        train_dataset = OceanQADataset(train_videos)
+
+        return train_dataset, val_dataset, test_dataset
+
     def write(self, out_dir):
         num_videos_written = 0
         for video_num, video in enumerate(self.videos):
